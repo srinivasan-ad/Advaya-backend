@@ -6,6 +6,7 @@ const { errorHandlers } = require("./ErrorHelpers/error");
 const db = require("./Database/connection");
 const Queries = require("./Database/Queries");
 const Helper = require("./Microservice/Microservice");
+const generateShortUUID = require("./Helper/helper");
 
 
 
@@ -43,7 +44,9 @@ if(result)
 app.post("/register" , async(req,res) => {
     const {leaderName,collegeName,email,phone,backupEmail,backupPhone,teamName,themeName,member1,member2,member3} = req.body
     try{
-        const result = await queries.Register(leaderName,collegeName,email,phone,backupEmail,backupPhone,teamName,themeName,member1,member2,member3)
+        const uuid = generateShortUUID()
+        console.log(uuid)
+        const result = await queries.Register(uuid,leaderName,collegeName,email,phone,backupEmail,backupPhone,teamName,themeName,member1,member2,member3)
         if(result.success)
         {
        await  Helper.sendRegistrationEmail(email,leaderName,teamName,themeName)
@@ -59,6 +62,112 @@ app.post("/register" , async(req,res) => {
       }
    
 })
+app.post("/comments", async (req, res) => {
+    const { user_id, user_name, content } = req.body;
+
+    if (!user_id || !user_name || !content) {
+        return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    try {
+        const result = await queries.AddComment(user_id, user_name, content);
+        if (result.success) {
+            return res.status(201).json(result);
+        } else {
+            return res.status(400).json(result);
+        }
+    } catch (error) {
+        console.error(chalk.red("Error in /comments:"), error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+app.post("/comments/:comment_id/replies", async (req, res) => {
+    const { comment_id } = req.params;
+    const { user_id, user_name, content } = req.body;
+
+    if (!comment_id || !user_id || !user_name || !content) {
+        return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    try {
+        const result = await queries.AddSubComment(comment_id, user_id, user_name, content);
+        if (result.success) {
+            return res.status(201).json(result);
+        } else {
+            return res.status(400).json(result);
+        }
+    } catch (error) {
+        console.error(chalk.red("Error in /comments/:comment_id/replies:"), error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+app.get("/comments", async (req, res) => {
+    try {
+        const result = await queries.GetAllComments();
+        if (result.success) {
+            return res.status(200).json(result);
+        } else {
+            return res.status(500).json(result);
+        }
+    } catch (e) {
+        console.error("Error in comments:", e);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+app.get("/comments/:comment_id/replies", async (req, res) => {
+    const { comment_id } = req.params;
+
+    if (!comment_id) {
+        return res.status(400).json({ success: false, message: "Comment ID is required" });
+    }
+
+    try {
+        const result = await queries.GetSubcommentsByCommentId(comment_id);
+        if (result.success) {
+            return res.status(200).json(result);
+        } else {
+            return res.status(500).json(result);
+        }
+    } catch (e) {
+        console.error("Error in /comments/:comment_id/subcomments:", e);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+app.post("/comments/:comment_id/like", async (req, res) => {
+    const { user_id } = req.body;
+    const { comment_id } = req.params;
+
+    if (!user_id || !comment_id) {
+        return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
+    }
+
+    try {
+        const result = await queries.LikeComment(user_id, comment_id);
+        return res.status(result.success ? 200 : 400).json(result);
+    } catch (e) {
+        console.error("Error in comments like:", e);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+app.post("/comments/:comment_id/dislike", async (req, res) => {
+    const { user_id } = req.body;
+    const { comment_id } = req.params;
+
+    if (!user_id || !comment_id) {
+        return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
+    }
+
+    try {
+        const result = await queries.DislikeComment(user_id, comment_id);
+        return res.status(result.success ? 200 : 400).json(result);
+    } catch (e) {
+        console.error("Error in comments dislike:", e);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
 app.listen(process.env.PORT , () => {
     console.log(`Server started at http://localhost:${process.env.PORT}`)
 })
