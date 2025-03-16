@@ -120,39 +120,52 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
-  async AddComment(user_id, user_name, content) {
+  async AddComment(user_id, user_name, content, timestamp) {
     const client = await db.getClient();
-    if (!client) {
-      console.log(chalk.red("No DB client available."));
-      return { success: false, message: "Database unavailable" };
-    }
-
     try {
       await client.query("BEGIN");
 
       const result = await client.query(
-        `INSERT INTO comments (user_id, user_name, content) 
-           VALUES ($1, $2, $3) RETURNING id, created_at`,
-        [user_id, user_name, content]
+        `INSERT INTO comments (user_id, user_name, content, created_at) 
+             VALUES ($1, $2, $3, $4) RETURNING id, user_id, user_name, content, created_at, like_count, dislike_count`,
+        [user_id, user_name, content, timestamp]
+      );
+
+      const commentId = result.rows[0].id;
+
+      const finalResult = await client.query(
+        `SELECT 
+                c.id AS commentId,
+                c.user_id, 
+                c.user_name, 
+                c.content AS comment, 
+                c.created_at AS timestamp,
+                c.like_count AS likeCount,
+                c.dislike_count AS dislikeCount,
+               c.subcomments_count AS subCommentsCount,
+                EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $1) AS haveLiked,
+                EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $1) AS haveDisliked
+            FROM comments c
+            WHERE c.id = $2`,
+        [user_id, commentId]
       );
 
       await client.query("COMMIT");
 
       return {
-        success: true,
-        message: "Comment added successfully",
-        comment: result.rows[0].id,
+        sucess: true,
+        comment: finalResult.rows[0],
       };
     } catch (e) {
       await client.query("ROLLBACK");
-      console.log(chalk.red("Error in AddComment:"), e);
-      return { success: false, message: "Failed to add comment" };
+      console.error("Error in CreateComment:", e);
+      return { success: false, message: "Error creating comment" };
     } finally {
       client.release();
-      console.log(chalk.yellowBright("Client released"));
     }
   }
-  async AddSubComment(comment_id, user_id, user_name, content) {
+
+  async AddSubComment(comment_id, user_id, user_name, content, timestamp) {
     const client = await db.getClient();
     if (!client) {
       console.log(chalk.red("No DB client available."));
@@ -161,27 +174,52 @@ class Queries {
 
     try {
       await client.query("BEGIN");
+
       const commentCheck = await client.query(
         "SELECT id FROM comments WHERE id = $1",
         [comment_id]
       );
 
       if (commentCheck.rowCount === 0) {
+        await client.query("ROLLBACK");
         return { success: false, message: "Parent comment does not exist" };
       }
-
       const result = await client.query(
-        `INSERT INTO subcomments (comment_id, user_id, user_name, content) 
-           VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
-        [comment_id, user_id, user_name, content]
+        `INSERT INTO subcomments (comment_id, user_id, user_name, content, created_at) 
+           VALUES ($1, $2, $3, $4, $5) 
+           RETURNING id, comment_id, user_id, user_name, content, created_at, like_count, dislike_count;`,
+        [comment_id, user_id, user_name, content, timestamp]
+      );
+
+      const subcommentId = result.rows[0].id;
+      await client.query(
+        `UPDATE comments SET subcomments_count = subcomments_count + 1 WHERE id = $1;`,
+        [comment_id]
+      );
+      const finalResult = await client.query(
+        `SELECT 
+          s.comment_id AS commentId,
+          s.id AS subcommentId,
+              s.user_id, 
+              s.user_name, 
+              s.content AS comment, 
+              s.created_at AS timestamp,
+              s.like_count AS likeCount,
+              s.dislike_count AS dislikeCount,
+              EXISTS (SELECT 1 FROM subcomment_likes WHERE subcomment_id = s.id AND user_id = $1) AS haveLiked,
+              EXISTS (SELECT 1 FROM subcomment_dislikes WHERE subcomment_id = s.id AND user_id = $1) AS haveDisliked,
+                c.subcomments_count AS subCommentsCount
+          FROM subcomments s
+           JOIN comments c ON c.id = s.comment_id 
+          WHERE s.id = $2`,
+        [user_id, subcommentId]
       );
 
       await client.query("COMMIT");
 
       return {
         success: true,
-        message: "Reply added successfully",
-        subcomment: result.rows[0].id,
+        subcomment: finalResult.rows[0],
       };
     } catch (e) {
       await client.query("ROLLBACK");
@@ -192,20 +230,41 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
-  async GetAllComments() {
+
+  async GetAllComments(offset,user_id) {
     const client = await db.getClient();
     if (!client) {
       console.log(chalk.red("No DB client available."));
       return { success: false, message: "Database unavailable" };
     }
-
+  
     try {
       await client.query("BEGIN");
-      const queryText = "SELECT * FROM comments ORDER BY created_at DESC";
-      const result = await client.query(queryText);
+  
+      const queryText = `
+        SELECT 
+          c.id AS commentId,
+          c.user_id, 
+          c.user_name, 
+          c.content AS comment, 
+          c.created_at AS timestamp,
+          c.like_count AS likeCount,
+          c.dislike_count AS dislikeCount,
+          c.subcomments_count AS subCommentsCount,  
+          EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $2) AS haveLiked,
+          EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $2) AS haveDisliked
+        FROM comments c
+        ORDER BY c.created_at DESC
+        LIMIT 5 OFFSET $1
+      `;
+  
+      const result = await client.query(queryText, [offset,user_id]);
+  
       await client.query("COMMIT");
-
-      return { success: true, comments: result.rows };
+      return {
+        success: true,
+        comments: result.rows,
+      };
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error in GetAllComments:"), e);
@@ -215,21 +274,41 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
-  async GetSubcommentsByCommentId(comment_id) {
+  
+  async GetSubcommentsByCommentId(comment_id, user_id) {
     const client = await db.getClient();
     if (!client) {
       console.log(chalk.red("No DB client available."));
       return { success: false, message: "Database unavailable" };
     }
-
+  
     try {
       await client.query("BEGIN");
-      const queryText =
-        "SELECT * FROM subcomments WHERE comment_id = $1 ORDER BY created_at ASC";
-      const result = await client.query(queryText, [comment_id]);
+  
+      const queryText = `
+        SELECT 
+          s.id AS subcommentId,
+          s.user_id, 
+          s.user_name, 
+          s.content AS subcomment,
+          s.created_at AS timestamp,
+          s.like_count AS likeCount,
+          s.dislike_count AS dislikeCount,
+          EXISTS (SELECT 1 FROM subcomment_likes WHERE subcomment_id = s.id AND user_id = $2) AS haveLiked,
+          EXISTS (SELECT 1 FROM subcomment_dislikes WHERE subcomment_id = s.id AND user_id = $2) AS haveDisliked
+        FROM subcomments s
+        WHERE s.comment_id = $1::integer
+        ORDER BY s.created_at ASC
+      `;
+      
+      const result = await client.query(queryText, [comment_id, user_id]);
+  
       await client.query("COMMIT");
-
-      return { success: true, subcomments: result.rows };
+  
+      return {
+        success: true,
+        subcomments: result.rows,
+      };
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error in GetSubcommentsByCommentId:"), e);
@@ -239,6 +318,7 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
+  
 
   async LikeComment(user_id, comment_id) {
     const client = await db.getClient();
@@ -249,22 +329,25 @@ class Queries {
 
     try {
       await client.query("BEGIN");
-       
+
       const checkQuery = `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2`;
       const checkRes = await client.query(checkQuery, [user_id, comment_id]);
 
       if (checkRes.rowCount > 0) {
-        await client.query("ROLLBACK");
+        const tempRes = await this.RemoveLikeComment(user_id, comment_id);
+        console.log(tempRes);
         return {
           success: false,
           message: "You have already liked this comment",
         };
       }
-      const checkDislikeQuery = `SELECT * FROM comment_dislikes WHERE user_id = $1 AND comment_id = $2`
-      const checkDislikeRes = await client.query(checkDislikeQuery,[user_id,comment_id])
-      if(checkDislikeRes.rowCount > 0)
-      {
-        const tempRes = await this.RemoveDislikeComment(user_id,comment_id)
+      const checkDislikeQuery = `SELECT * FROM comment_dislikes WHERE user_id = $1 AND comment_id = $2`;
+      const checkDislikeRes = await client.query(checkDislikeQuery, [
+        user_id,
+        comment_id,
+      ]);
+      if (checkDislikeRes.rowCount > 0) {
+        const tempRes = await this.RemoveDislikeComment(user_id, comment_id);
         console.log(tempRes);
       }
       await client.query(
@@ -301,17 +384,20 @@ class Queries {
       const checkRes = await client.query(checkQuery, [user_id, comment_id]);
 
       if (checkRes.rowCount > 0) {
-        await client.query("ROLLBACK");
+        const tempRes = await this.RemoveDislikeComment(user_id, comment_id);
+        console.log(tempRes);
         return {
           success: false,
           message: "You have already disliked this comment",
         };
       }
-      const checkLikeQuery = `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2`
-      const checkLikeRes = await client.query(checkLikeQuery,[user_id,comment_id])
-      if(checkLikeRes.rowCount > 0)
-      {
-        const tempRes = await this.RemoveLikeComment(user_id,comment_id)
+      const checkLikeQuery = `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2`;
+      const checkLikeRes = await client.query(checkLikeQuery, [
+        user_id,
+        comment_id,
+      ]);
+      if (checkLikeRes.rowCount > 0) {
+        const tempRes = await this.RemoveLikeComment(user_id, comment_id);
         console.log(tempRes);
       }
       await client.query(
@@ -348,17 +434,23 @@ class Queries {
       const checkRes = await client.query(checkQuery, [user_id, subcomment_id]);
 
       if (checkRes.rowCount > 0) {
-        await client.query("ROLLBACK");
+        const tempRes = await this.RemoveLikeSubComment(user_id, subcomment_id);
+        console.log(tempRes)
         return {
           success: false,
-          message: "You have already liked this subcomment",
+          message: "Subcomment like deleted successfully !",
         };
       }
-      const checkDislikeQuery = `SELECT * FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`
-      const checkDislikeRes = await client.query(checkDislikeQuery,[user_id,subcomment_id])
-      if(checkDislikeRes.rowCount > 0)
-      {
-        const tempRes = await this.RemoveDislikeSubComment(user_id,subcomment_id)
+      const checkDislikeQuery = `SELECT * FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`;
+      const checkDislikeRes = await client.query(checkDislikeQuery, [
+        user_id,
+        subcomment_id,
+      ]);
+      if (checkDislikeRes.rowCount > 0) {
+        const tempRes = await this.RemoveDislikeSubComment(
+          user_id,
+          subcomment_id
+        );
         console.log(tempRes);
       }
       await client.query(
@@ -395,17 +487,23 @@ class Queries {
       const checkRes = await client.query(checkQuery, [user_id, subcomment_id]);
 
       if (checkRes.rowCount > 0) {
-        await client.query("ROLLBACK");
+        const tempRes = await this.RemoveDislikeSubComment(
+          user_id,
+          subcomment_id
+        );
+        console.log(tempRes);
         return {
           success: false,
           message: "You have already disliked this subcomment",
         };
       }
-      const checkLikeQuery = `SELECT * FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`
-      const checkLikeRes = await client.query(checkLikeQuery,[user_id,subcomment_id])
-      if(checkLikeRes.rowCount > 0)
-      {
-        const tempRes = await this.RemoveLikeSubComment(user_id,subcomment_id)
+      const checkLikeQuery = `SELECT * FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`;
+      const checkLikeRes = await client.query(checkLikeQuery, [
+        user_id,
+        subcomment_id,
+      ]);
+      if (checkLikeRes.rowCount > 0) {
+        const tempRes = await this.RemoveLikeSubComment(user_id, subcomment_id);
         console.log(tempRes);
       }
       await client.query(
@@ -588,7 +686,11 @@ class Queries {
         await client.query("ROLLBACK");
         return { success: false, message: "Subcomment not found " };
       }
-
+      await client.query(
+        `UPDATE comments SET subcomments_count = subcomments_count - 1 WHERE id = (SELECT comment_id FROM subcomments WHERE id = $1)
+`,
+        [subcomment_id]
+      );
       await client.query(`DELETE FROM subcomments WHERE id = $1`, [
         subcomment_id,
       ]);
@@ -638,12 +740,12 @@ class Queries {
       console.log(chalk.red("No DB client available."));
       return { success: false, message: "Database unavailable" };
     }
-
+  
     try {
       await client.query("BEGIN");
       const checkQuery = `SELECT * FROM comments WHERE id = $1 AND user_id = $2`;
       const checkRes = await client.query(checkQuery, [comment_id, user_id]);
-
+  
       if (checkRes.rowCount === 0) {
         await client.query("ROLLBACK");
         return {
@@ -651,13 +753,34 @@ class Queries {
           message: "Comment not found or not authorized to update",
         };
       }
-      await client.query(
-        `UPDATE comments SET content = $1, updated_at = NOW() WHERE id = $2 RETURNING*`,
-        [content, comment_id]
-      );
 
+      await client.query(
+        `UPDATE comments SET content = $1 WHERE id = $ 2`,
+        [content,comment_id]
+      );
+      const finalResult = await client.query(
+        `SELECT 
+            c.id AS commentId,
+            c.user_id, 
+            c.user_name, 
+            c.content AS comment, 
+            c.created_at AS timestamp,
+            c.like_count AS likeCount,
+            c.dislike_count AS dislikeCount,
+            c.subcomments_count AS subCommentsCount,  
+            EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $1) AS haveLiked,
+            EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $1) AS haveDisliked
+            FROM comments c
+            WHERE c.id = $2`,
+        [user_id, comment_id]
+      );
+  
       await client.query("COMMIT");
-      return { success: true, message: "Comment updated successfully" };
+  
+      return {
+        success: true,
+        comment: finalResult.rows[0],
+      };
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error in UpdateComment:"), e);
@@ -667,43 +790,69 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
-
+  
   async UpdateSubcomment(subcomment_id, user_id, content) {
     const client = await db.getClient();
     if (!client) {
-        console.log(chalk.red("No DB client available."));
-        return { success: false, message: "Database unavailable" };
+      console.log(chalk.red("No DB client available."));
+      return { success: false, message: "Database unavailable" };
     }
-
+  
     try {
-        await client.query("BEGIN");
-        const checkQuery = `SELECT * FROM subcomments WHERE id = $1 AND user_id = $2`;
-        const checkRes = await client.query(checkQuery, [subcomment_id, user_id]);
-
-        if (checkRes.rowCount === 0) {
-            await client.query("ROLLBACK");
-            return { success: false, message: "Subcomment not found or not authorized to update" };
-        }
-        await client.query(
-            `UPDATE subcomments SET content = $1, updated_at = NOW() WHERE id = $2`,
-            [content, subcomment_id]
-        );
-
-        await client.query("COMMIT");
-        return { success: true, message: "Subcomment updated successfully" };
-    } catch (e) {
+      await client.query("BEGIN");
+      const checkQuery = `SELECT * FROM subcomments WHERE id = $1 AND user_id = $2`;
+      const checkRes = await client.query(checkQuery, [subcomment_id, user_id]);
+  
+      if (checkRes.rowCount === 0) {
         await client.query("ROLLBACK");
-        console.log(chalk.red("Error in UpdateSubcomment:"), e);
-        return { success: false, message: "Failed to update subcomment" };
+        return {
+          success: false,
+          message: "Subcomment not found or not authorized to update",
+        };
+      }
+  
+      await client.query(
+        `UPDATE subcomments SET content = $1 WHERE id = $2`,
+        [content, subcomment_id]
+      );
+      const finalResult = await client.query(
+        `SELECT 
+            s.comment_id AS commentId,
+            s.id AS subcommentId,
+            s.user_id, 
+            s.user_name, 
+            s.content AS comment, 
+            s.created_at AS timestamp,
+            s.like_count AS likeCount,
+            s.dislike_count AS dislikeCount,
+            c.subcomments_count AS subCommentsCount,  
+            EXISTS (SELECT 1 FROM subcomment_likes WHERE subcomment_id = s.id AND user_id = $1) AS haveLiked,
+            EXISTS (SELECT 1 FROM subcomment_dislikes WHERE subcomment_id = s.id AND user_id = $1) AS haveDisliked
+            FROM subcomments s
+           JOIN comments c ON s.comment_id = c.id
+           WHERE s.id = $2`,
+        [user_id, subcomment_id]
+      );
+  
+      await client.query("COMMIT");
+  
+      return {
+        success: true,
+        subcomment: finalResult.rows[0],
+      };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in UpdateSubcomment:"), e);
+      return { success: false, message: "Failed to update subcomment" };
     } finally {
-        client.release();
-        console.log(chalk.yellowBright("Client released"));
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
     }
-    
-}
-async GetCommentLikesDislikes(comment_id) {
-  const client = await db.getClient();
-  try {
+  }
+  
+  async GetCommentLikesDislikes(comment_id) {
+    const client = await db.getClient();
+    try {
       const queryText = `
           SELECT like_count, dislike_count 
           FROM comments 
@@ -712,21 +861,24 @@ async GetCommentLikesDislikes(comment_id) {
       const result = await client.query(queryText, [comment_id]);
 
       if (result.rowCount > 0) {
-          return { success: true, data: result.rows[0] };
+        return { success: true, data: result.rows[0] };
       } else {
-          return { success: false, message: "Comment not found" };
+        return { success: false, message: "Comment not found" };
       }
-  } catch (e) {
+    } catch (e) {
       console.error(chalk.red("Error in GetCommentLikesDislikes:"), e);
-      return { success: false, message: "Error fetching like/dislike count" };
-  } finally {
+      return {
+        success: false,
+        message: "Error fetching like and dislike count",
+      };
+    } finally {
       client.release();
+    }
   }
-}
 
-async GetSubcommentLikesDislikes(subcomment_id) {
-  const client = await db.getClient();
-  try {
+  async GetSubcommentLikesDislikes(subcomment_id) {
+    const client = await db.getClient();
+    try {
       const queryText = `
           SELECT like_count, dislike_count 
           FROM subcomments 
@@ -735,18 +887,19 @@ async GetSubcommentLikesDislikes(subcomment_id) {
       const result = await client.query(queryText, [subcomment_id]);
 
       if (result.rowCount > 0) {
-          return { success: true, data: result.rows[0] };
+        return { success: true, data: result.rows[0] };
       } else {
-          return { success: false, message: "Subcomment not found" };
+        return { success: false, message: "Subcomment not found" };
       }
-  } catch (e) {
+    } catch (e) {
       console.error(chalk.red("Error in GetSubcommentLikesDislikes:"), e);
-      return { success: false, message: "Error fetching like/dislike count" };
-  } finally {
+      return {
+        success: false,
+        message: "Error fetching like and dislike count",
+      };
+    } finally {
       client.release();
+    }
   }
-}
-
-
 }
 module.exports = Queries;

@@ -87,23 +87,23 @@ app.post("/register", async (req, res) => {
   }
 });
 app.post("/comments", async (req, res) => {
-  const { user_id, user_name, content } = req.body;
+  const { user_id, user_name, content , timestamp } = req.body;
 
-  if (!user_id || !user_name || !content) {
+  if (!user_id || !user_name || !content || !timestamp) {
     return res
       .status(400)
       .json({ success: false, message: "Missing required fields" });
   }
 
   try {
-    const result = await queries.AddComment(user_id, user_name, content);
-    if (result.success) {
-      return res.status(201).json(result);
+    const result = await queries.AddComment(user_id, user_name, content , timestamp);
+    if (result.sucess) {
+      return res.status(201).json(result.comment);
     } else {
       return res.status(400).json(result);
     }
   } catch (error) {
-    console.error(chalk.red("Error in /comments:"), error);
+    console.error(chalk.red("Error in comments:"), error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -138,9 +138,11 @@ app.post("/comments/:comment_id/subcomments", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.get("/comments", async (req, res) => {
+app.get("/comments/:user_id", async (req, res) => {
+    const {offset}  = req.query
+    const {user_id} = req.params
   try {
-    const result = await queries.GetAllComments();
+    const result = await queries.GetAllComments(offset,user_id);
     if (result.success) {
       return res.status(200).json(result);
     } else {
@@ -153,29 +155,28 @@ app.get("/comments", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.get("/comments/:comment_id/subcomments", async (req, res) => {
-  const { comment_id } = req.params;
-
-  if (!comment_id) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Comment ID is required" });
-  }
-
-  try {
-    const result = await queries.GetSubcommentsByCommentId(comment_id);
-    if (result.success) {
-      return res.status(200).json(result);
-    } else {
-      return res.status(500).json(result);
+app.get("/comments/:user_id/:comment_id/subcomments", async (req, res) => {
+    const { user_id, comment_id } = req.params;
+    const commentIdNumber = parseInt(comment_id, 10);
+    if (isNaN(commentIdNumber)) {
+      return res.status(400).json({ success: false, message: "Invalid comment ID" });
     }
-  } catch (e) {
-    console.error("Error in /comments/:comment_id/subcomments:", e);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
-  }
-});
+  
+    try {
+      const result = await queries.GetSubcommentsByCommentId(commentIdNumber, user_id);
+      if (result.success) {
+        return res.status(200).json(result);
+      } else {
+        return res.status(500).json(result);
+      }
+    } catch (e) {
+      console.error("Error in subcomments:", e);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal server error" });
+    }
+  });
+  
 
 app.post("/comments/:comment_id/like", async (req, res) => {
   const { user_id } = req.body;
@@ -266,79 +267,14 @@ app.post("/subcomments/:subcomment_id/dislike", async (req, res) => {
   }
 });
 
-app.delete("/comments/:comment_id/like", async (req, res) => {
-    const { user_id } = req.body;
-    const { comment_id } = req.params;
-
-    if (!user_id || !comment_id) {
-        return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
-    }
-
-    try {
-        const result = await queries.RemoveLikeComment(user_id, comment_id);
-        return res.status(result.success ? 200 : 400).json(result);
-    } catch (e) {
-        console.error("Error in like", e);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-});
-
-app.delete("/comments/:comment_id/dislike", async (req, res) => {
-    const { user_id } = req.body;
-    const { comment_id } = req.params;
-
-    if (!user_id || !comment_id) {
-        return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
-    }
-
-    try {
-        const result = await queries.RemoveDislikeComment(user_id, comment_id);
-        return res.status(result.success ? 200 : 400).json(result);
-    } catch (e) {
-        console.error("Error in dislike", e);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-});
-app.delete("/subcomments/:subcomment_id/like", async (req,res) => {
-    const { user_id } = req.body;
-    const { subcomment_id } = req.params;
-
-    if (!user_id || !subcomment_id) {
-        return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
-    }
-
-    try {
-        const result = await queries.RemoveLikeSubComment(user_id, subcomment_id);
-        return res.status(result.success ? 200 : 400).json(result);
-    } catch (e) {
-        console.error("Error in like", e);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-})
-app.delete("/subcomments/:subcomment_id/dislike", async (req,res) => {
-    const { user_id } = req.body;
-    const { subcomment_id } = req.params;
-
-    if (!user_id || !subcomment_id) {
-        return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
-    }
-
-    try {
-        const result = await queries.RemoveDislikeSubComment(user_id, subcomment_id);
-        return res.status(result.success ? 200 : 400).json(result);
-    } catch (e) {
-        console.error("Error in like", e);
-        return res.status(500).json({ success: false, message: "Internal server error" });
-    }
-})
 app.delete("/comments/:comment_id", async (req, res) => {
     const { user_id } = req.body;
     const { comment_id } = req.params;
-
+    
     if (!user_id || !comment_id) {
         return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
     }
-
+    
     try {
         const result = await queries.DeleteComment(comment_id, user_id);
         return res.status(result.success ? 200 : 400).json(result);
@@ -350,11 +286,11 @@ app.delete("/comments/:comment_id", async (req, res) => {
 app.delete("/subcomments/:subcomment_id", async (req, res) => {
     const { user_id } = req.body;
     const { subcomment_id } = req.params;
-
+    
     if (!user_id || !subcomment_id) {
         return res.status(400).json({ success: false, message: "User ID and Subcomment ID are required" });
     }
-
+    
     try {
         const result = await queries.DeleteSubcomment(subcomment_id, user_id);
         return res.status(result.success ? 200 : 400).json(result);
@@ -366,11 +302,11 @@ app.delete("/subcomments/:subcomment_id", async (req, res) => {
 app.put("/comments/:comment_id", async (req, res) => {
     const { user_id, content } = req.body;
     const { comment_id } = req.params;
-
+    
     if (!user_id || !comment_id || !content) {
         return res.status(400).json({ success: false, message: "User ID, Comment ID, and content are required" });
     }
-
+    
     try {
         const result = await queries.UpdateComment(comment_id, user_id, content);
         return res.status(result.success ? 200 : 400).json(result);
@@ -382,11 +318,11 @@ app.put("/comments/:comment_id", async (req, res) => {
 app.put("/subcomments/:subcomment_id", async (req, res) => {
     const { user_id, content } = req.body;
     const { subcomment_id } = req.params;
-
+    
     if (!user_id || !subcomment_id || !content) {
         return res.status(400).json({ success: false, message: "User ID, Subcomment ID, and content are required" });
     }
-
+    
     try {
         const result = await queries.UpdateSubcomment(subcomment_id, user_id, content);
         return res.status(result.success ? 200 : 400).json(result);
@@ -417,5 +353,71 @@ app.get("/subcomments/:id/likes-dislikes", async (req, res) => {
 });
 
 app.listen(process.env.PORT, () => {
-  console.log(`Server started at http://localhost:${process.env.PORT}`);
+    console.log(`Server started at http://localhost:${process.env.PORT}`);
 });
+
+// app.delete("/comments/:comment_id/like", async (req, res) => {
+//     const { user_id } = req.body;
+//     const { comment_id } = req.params;
+
+//     if (!user_id || !comment_id) {
+//         return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
+//     }
+
+//     try {
+//         const result = await queries.RemoveLikeComment(user_id, comment_id);
+//         return res.status(result.success ? 200 : 400).json(result);
+//     } catch (e) {
+//         console.error("Error in like", e);
+//         return res.status(500).json({ success: false, message: "Internal server error" });
+//     }
+// });
+
+// app.delete("/comments/:comment_id/dislike", async (req, res) => {
+//     const { user_id } = req.body;
+//     const { comment_id } = req.params;
+
+//     if (!user_id || !comment_id) {
+//         return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
+//     }
+
+//     try {
+//         const result = await queries.RemoveDislikeComment(user_id, comment_id);
+//         return res.status(result.success ? 200 : 400).json(result);
+//     } catch (e) {
+//         console.error("Error in dislike", e);
+//         return res.status(500).json({ success: false, message: "Internal server error" });
+//     }
+// });
+// app.delete("/subcomments/:subcomment_id/like", async (req,res) => {
+//     const { user_id } = req.body;
+//     const { subcomment_id } = req.params;
+
+//     if (!user_id || !subcomment_id) {
+//         return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
+//     }
+
+//     try {
+//         const result = await queries.RemoveLikeSubComment(user_id, subcomment_id);
+//         return res.status(result.success ? 200 : 400).json(result);
+//     } catch (e) {
+//         console.error("Error in like", e);
+//         return res.status(500).json({ success: false, message: "Internal server error" });
+//     }
+// })
+// app.delete("/subcomments/:subcomment_id/dislike", async (req,res) => {
+//     const { user_id } = req.body;
+//     const { subcomment_id } = req.params;
+
+//     if (!user_id || !subcomment_id) {
+//         return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
+//     }
+
+//     try {
+//         const result = await queries.RemoveDislikeSubComment(user_id, subcomment_id);
+//         return res.status(result.success ? 200 : 400).json(result);
+//     } catch (e) {
+//         console.error("Error in like", e);
+//         return res.status(500).json({ success: false, message: "Internal server error" });
+//     }
+// })
