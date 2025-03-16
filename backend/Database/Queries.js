@@ -249,7 +249,7 @@ class Queries {
 
     try {
       await client.query("BEGIN");
-
+       
       const checkQuery = `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2`;
       const checkRes = await client.query(checkQuery, [user_id, comment_id]);
 
@@ -259,6 +259,13 @@ class Queries {
           success: false,
           message: "You have already liked this comment",
         };
+      }
+      const checkDislikeQuery = `SELECT * FROM comment_dislikes WHERE user_id = $1 AND comment_id = $2`
+      const checkDislikeRes = await client.query(checkDislikeQuery,[user_id,comment_id])
+      if(checkDislikeRes.rowCount > 0)
+      {
+        const tempRes = await this.RemoveDislikeComment(user_id,comment_id)
+        console.log(tempRes);
       }
       await client.query(
         `INSERT INTO comment_likes (user_id, comment_id) VALUES ($1, $2)`,
@@ -300,6 +307,13 @@ class Queries {
           message: "You have already disliked this comment",
         };
       }
+      const checkLikeQuery = `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2`
+      const checkLikeRes = await client.query(checkLikeQuery,[user_id,comment_id])
+      if(checkLikeRes.rowCount > 0)
+      {
+        const tempRes = await this.RemoveLikeComment(user_id,comment_id)
+        console.log(tempRes);
+      }
       await client.query(
         `INSERT INTO comment_dislikes (user_id, comment_id) VALUES ($1, $2)`,
         [user_id, comment_id]
@@ -340,6 +354,13 @@ class Queries {
           message: "You have already liked this subcomment",
         };
       }
+      const checkDislikeQuery = `SELECT * FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`
+      const checkDislikeRes = await client.query(checkDislikeQuery,[user_id,subcomment_id])
+      if(checkDislikeRes.rowCount > 0)
+      {
+        const tempRes = await this.RemoveDislikeSubComment(user_id,subcomment_id)
+        console.log(tempRes);
+      }
       await client.query(
         `INSERT INTO subcomment_likes (user_id, subcomment_id) VALUES ($1, $2)`,
         [user_id, subcomment_id]
@@ -379,6 +400,13 @@ class Queries {
           success: false,
           message: "You have already disliked this subcomment",
         };
+      }
+      const checkLikeQuery = `SELECT * FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`
+      const checkLikeRes = await client.query(checkLikeQuery,[user_id,subcomment_id])
+      if(checkLikeRes.rowCount > 0)
+      {
+        const tempRes = await this.RemoveLikeSubComment(user_id,subcomment_id)
+        console.log(tempRes);
       }
       await client.query(
         `INSERT INTO subcomment_dislikes (user_id, subcomment_id) VALUES ($1, $2)`,
