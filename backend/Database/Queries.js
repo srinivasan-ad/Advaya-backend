@@ -141,7 +141,7 @@ class Queries {
       return {
         success: true,
         message: "Comment added successfully",
-        comment: result.rows[0],
+        comment: result.rows[0].id,
       };
     } catch (e) {
       await client.query("ROLLBACK");
@@ -181,7 +181,7 @@ class Queries {
       return {
         success: true,
         message: "Reply added successfully",
-        subcomment: result.rows[0],
+        subcomment: result.rows[0].id,
       };
     } catch (e) {
       await client.query("ROLLBACK");
@@ -433,8 +433,214 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
-  
+
+  async RemoveLikeSubComment(user_id, subcomment_id) {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("No DB client available."));
+      return { success: false, message: "Database unavailable" };
+    }
+
+    try {
+      await client.query("BEGIN");
+      const deleteQuery = `DELETE FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2 RETURNING *`;
+      const deleteRes = await client.query(deleteQuery, [
+        user_id,
+        subcomment_id,
+      ]);
+
+      if (deleteRes.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return { success: false, message: "You have not liked this comment" };
+      }
+      await client.query(
+        `UPDATE subcomments SET like_count = like_count - 1 WHERE id = $1`,
+        [subcomment_id]
+      );
+
+      await client.query("COMMIT");
+      return { success: true, message: "Like removed successfully" };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in RemoveLikeComment:"), e);
+      return { success: false, message: "Failed to remove like" };
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
   async RemoveDislikeComment(user_id, comment_id) {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("No DB client available."));
+      return { success: false, message: "Database unavailable" };
+    }
+
+    try {
+      await client.query("BEGIN");
+      const deleteQuery = `DELETE FROM comment_dislikes WHERE user_id = $1 AND comment_id = $2 RETURNING *`;
+      const deleteRes = await client.query(deleteQuery, [user_id, comment_id]);
+
+      if (deleteRes.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return {
+          success: false,
+          message: "You have not disliked this comment",
+        };
+      }
+      await client.query(
+        `UPDATE comments SET dislike_count = dislike_count - 1 WHERE id = $1`,
+        [comment_id]
+      );
+
+      await client.query("COMMIT");
+      return { success: true, message: "Dislike removed successfully" };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in RemoveDislikeComment:"), e);
+      return { success: false, message: "Failed to remove dislike" };
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
+
+  async RemoveDislikeSubComment(user_id, subcomment_id) {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("No DB client available."));
+      return { success: false, message: "Database unavailable" };
+    }
+
+    try {
+      await client.query("BEGIN");
+      const deleteQuery = `DELETE FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2 RETURNING *`;
+      const deleteRes = await client.query(deleteQuery, [
+        user_id,
+        subcomment_id,
+      ]);
+
+      if (deleteRes.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return {
+          success: false,
+          message: "You have not disliked this subcomment",
+        };
+      }
+      await client.query(
+        `UPDATE subcomments SET dislike_count = dislike_count - 1 WHERE id = $1`,
+        [subcomment_id]
+      );
+
+      await client.query("COMMIT");
+      return { success: true, message: "Dislike removed successfully" };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in RemoveDislikeComment:"), e);
+      return { success: false, message: "Failed to remove dislike" };
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
+  async DeleteSubcomment(subcomment_id, user_id) {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("No DB client available."));
+      return { success: false, message: "Database unavailable" };
+    }
+
+    try {
+      await client.query("BEGIN");
+
+      const checkQuery = `SELECT * FROM subcomments WHERE id = $1 AND user_id = $2`;
+      const checkRes = await client.query(checkQuery, [subcomment_id, user_id]);
+
+      if (checkRes.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return { success: false, message: "Subcomment not found " };
+      }
+
+      await client.query(`DELETE FROM subcomments WHERE id = $1`, [
+        subcomment_id,
+      ]);
+
+      await client.query("COMMIT");
+      return { success: true, message: "Subcomment deleted successfully" };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in DeleteSubcomment:"), e);
+      return { success: false, message: "Failed to delete subcomment" };
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
+
+  async DeleteComment(comment_id, user_id) {
+    const client = await db.getClient();
+    if (!client) {
+      return { success: false, message: "Database unavailable" };
+    }
+
+    try {
+      await client.query("BEGIN");
+      const checkQuery = `SELECT * FROM comments WHERE id = $1 AND user_id = $2`;
+      const checkRes = await client.query(checkQuery, [comment_id, user_id]);
+
+      if (checkRes.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return { success: false, message: "Comment not found " };
+      }
+      await client.query(`DELETE FROM comments WHERE id = $1`, [comment_id]);
+
+      await client.query("COMMIT");
+      return { success: true, message: "Comment deleted successfully" };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      return { success: false, message: "Failed to delete comment" };
+    } finally {
+      client.release();
+    }
+  }
+
+  async UpdateComment(comment_id, user_id, content) {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("No DB client available."));
+      return { success: false, message: "Database unavailable" };
+    }
+
+    try {
+      await client.query("BEGIN");
+      const checkQuery = `SELECT * FROM comments WHERE id = $1 AND user_id = $2`;
+      const checkRes = await client.query(checkQuery, [comment_id, user_id]);
+
+      if (checkRes.rowCount === 0) {
+        await client.query("ROLLBACK");
+        return {
+          success: false,
+          message: "Comment not found or not authorized to update",
+        };
+      }
+      await client.query(
+        `UPDATE comments SET content = $1, updated_at = NOW() WHERE id = $2 RETURNING*`,
+        [content, comment_id]
+      );
+
+      await client.query("COMMIT");
+      return { success: true, message: "Comment updated successfully" };
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in UpdateComment:"), e);
+      return { success: false, message: "Failed to update comment" };
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
+
+  async UpdateSubcomment(subcomment_id, user_id, content) {
     const client = await db.getClient();
     if (!client) {
         console.log(chalk.red("No DB client available."));
@@ -443,29 +649,76 @@ class Queries {
 
     try {
         await client.query("BEGIN");
-        const deleteQuery = `DELETE FROM comment_dislikes WHERE user_id = $1 AND comment_id = $2 RETURNING *`;
-        const deleteRes = await client.query(deleteQuery, [user_id, comment_id]);
+        const checkQuery = `SELECT * FROM subcomments WHERE id = $1 AND user_id = $2`;
+        const checkRes = await client.query(checkQuery, [subcomment_id, user_id]);
 
-        if (deleteRes.rowCount === 0) {
+        if (checkRes.rowCount === 0) {
             await client.query("ROLLBACK");
-            return { success: false, message: "You have not disliked this comment" };
+            return { success: false, message: "Subcomment not found or not authorized to update" };
         }
         await client.query(
-            `UPDATE comments SET dislike_count = dislike_count - 1 WHERE id = $1`,
-            [comment_id]
+            `UPDATE subcomments SET content = $1, updated_at = NOW() WHERE id = $2`,
+            [content, subcomment_id]
         );
 
         await client.query("COMMIT");
-        return { success: true, message: "Dislike removed successfully" };
+        return { success: true, message: "Subcomment updated successfully" };
     } catch (e) {
         await client.query("ROLLBACK");
-        console.log(chalk.red("Error in RemoveDislikeComment:"), e);
-        return { success: false, message: "Failed to remove dislike" };
+        console.log(chalk.red("Error in UpdateSubcomment:"), e);
+        return { success: false, message: "Failed to update subcomment" };
     } finally {
         client.release();
         console.log(chalk.yellowBright("Client released"));
     }
+    
 }
+async GetCommentLikesDislikes(comment_id) {
+  const client = await db.getClient();
+  try {
+      const queryText = `
+          SELECT like_count, dislike_count 
+          FROM comments 
+          WHERE id = $1;
+      `;
+      const result = await client.query(queryText, [comment_id]);
+
+      if (result.rowCount > 0) {
+          return { success: true, data: result.rows[0] };
+      } else {
+          return { success: false, message: "Comment not found" };
+      }
+  } catch (e) {
+      console.error(chalk.red("Error in GetCommentLikesDislikes:"), e);
+      return { success: false, message: "Error fetching like/dislike count" };
+  } finally {
+      client.release();
+  }
+}
+
+async GetSubcommentLikesDislikes(subcomment_id) {
+  const client = await db.getClient();
+  try {
+      const queryText = `
+          SELECT like_count, dislike_count 
+          FROM subcomments 
+          WHERE id = $1;
+      `;
+      const result = await client.query(queryText, [subcomment_id]);
+
+      if (result.rowCount > 0) {
+          return { success: true, data: result.rows[0] };
+      } else {
+          return { success: false, message: "Subcomment not found" };
+      }
+  } catch (e) {
+      console.error(chalk.red("Error in GetSubcommentLikesDislikes:"), e);
+      return { success: false, message: "Error fetching like/dislike count" };
+  } finally {
+      client.release();
+  }
+}
+
 
 }
 module.exports = Queries;
