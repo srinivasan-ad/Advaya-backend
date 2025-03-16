@@ -18,9 +18,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: "https://00d3-106-222-203-37.ngrok-free.app",
+    origin: "http://localhost:3000",
   })
 );
+app.use((_, res, next) => {
+  res.setHeader("ngrok-skip-browser-warning", "true");
+  next();
+});
 app.use((req, res, next) => {
   middleware.routeHit(req, res, next);
 });
@@ -86,7 +90,7 @@ app.post("/register", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.post("/comments", async (req, res) => {
+app.post("/comment", async (req, res) => {
   const { user_id, user_name, content , timestamp } = req.body;
 
   if (!user_id || !user_name || !content || !timestamp) {
@@ -98,7 +102,7 @@ app.post("/comments", async (req, res) => {
   try {
     const result = await queries.AddComment(user_id, user_name, content , timestamp);
     if (result.sucess) {
-      return res.status(201).json(result.comment);
+      return res.status(201).json(result);
     } else {
       return res.status(400).json(result);
     }
@@ -109,9 +113,9 @@ app.post("/comments", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.post("/comments/:comment_id/subcomments", async (req, res) => {
+app.post("/comment/:comment_id/subcomment", async (req, res) => {
   const { comment_id } = req.params;
-  const { user_id, user_name, content } = req.body;
+  const { user_id, user_name, content , timestamp } = req.body;
 
   if (!comment_id || !user_id || !user_name || !content) {
     return res
@@ -124,7 +128,8 @@ app.post("/comments/:comment_id/subcomments", async (req, res) => {
       comment_id,
       user_id,
       user_name,
-      content
+      content,
+      timestamp
     );
     if (result.success) {
       return res.status(201).json(result);
@@ -138,12 +143,12 @@ app.post("/comments/:comment_id/subcomments", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.get("/comments/:user_id", async (req, res) => {
-    const {offset}  = req.query
-    const {user_id} = req.params
+app.get("/comments", async (req, res) => {
+    const {offset,user_id}  = req.query
   try {
     const result = await queries.GetAllComments(offset,user_id);
     if (result.success) {
+      console.log(result.comments)
       return res.status(200).json(result);
     } else {
       return res.status(500).json(result);
@@ -155,8 +160,9 @@ app.get("/comments/:user_id", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.get("/comments/:user_id/:comment_id/subcomments", async (req, res) => {
-    const { user_id, comment_id } = req.params;
+app.get("/comment/subcomments", async (req, res) => {
+    const { user_id, comment_id } = req.query;
+    console.log(user_id,comment_id);
     const commentIdNumber = parseInt(comment_id, 10);
     if (isNaN(commentIdNumber)) {
       return res.status(400).json({ success: false, message: "Invalid comment ID" });
@@ -178,7 +184,7 @@ app.get("/comments/:user_id/:comment_id/subcomments", async (req, res) => {
   });
   
 
-app.post("/comments/:comment_id/like", async (req, res) => {
+app.post("/comment/:comment_id/like", async (req, res) => {
   const { user_id } = req.body;
   const { comment_id } = req.params;
 
@@ -199,7 +205,7 @@ app.post("/comments/:comment_id/like", async (req, res) => {
   }
 });
 
-app.post("/comments/:comment_id/dislike", async (req, res) => {
+app.post("/comment/:comment_id/dislike", async (req, res) => {
   const { user_id } = req.body;
   const { comment_id } = req.params;
 
@@ -219,7 +225,7 @@ app.post("/comments/:comment_id/dislike", async (req, res) => {
       .json({ success: false, message: "Internal server error" });
   }
 });
-app.post("/subcomments/:subcomment_id/like", async (req, res) => {
+app.post("/subcomment/:subcomment_id/like", async (req, res) => {
   const { user_id } = req.body;
   const { subcomment_id } = req.params;
 
@@ -243,7 +249,7 @@ app.post("/subcomments/:subcomment_id/like", async (req, res) => {
   }
 });
 
-app.post("/subcomments/:subcomment_id/dislike", async (req, res) => {
+app.post("/subcomment/:subcomment_id/dislike", async (req, res) => {
   const { user_id } = req.body;
   const { subcomment_id } = req.params;
 
@@ -267,7 +273,7 @@ app.post("/subcomments/:subcomment_id/dislike", async (req, res) => {
   }
 });
 
-app.delete("/comments/:comment_id", async (req, res) => {
+app.delete("/comment/:comment_id", async (req, res) => {
     const { user_id } = req.body;
     const { comment_id } = req.params;
     
@@ -283,7 +289,7 @@ app.delete("/comments/:comment_id", async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
-app.delete("/subcomments/:subcomment_id", async (req, res) => {
+app.delete("/subcomment/:subcomment_id", async (req, res) => {
     const { user_id } = req.body;
     const { subcomment_id } = req.params;
     
@@ -299,7 +305,7 @@ app.delete("/subcomments/:subcomment_id", async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
-app.put("/comments/:comment_id", async (req, res) => {
+app.put("/comment/:comment_id", async (req, res) => {
     const { user_id, content } = req.body;
     const { comment_id } = req.params;
     
@@ -315,7 +321,7 @@ app.put("/comments/:comment_id", async (req, res) => {
         return res.status(500).json({ success: false, message: "Internal server error" });
     }
 });
-app.put("/subcomments/:subcomment_id", async (req, res) => {
+app.put("/subcomment/:subcomment_id", async (req, res) => {
     const { user_id, content } = req.body;
     const { subcomment_id } = req.params;
     

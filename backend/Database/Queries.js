@@ -135,16 +135,16 @@ class Queries {
 
       const finalResult = await client.query(
         `SELECT 
-                c.id AS commentId,
-                c.user_id, 
-                c.user_name, 
+                c.id AS "commentId",
+                c.user_id AS "userId", 
+                c.user_name AS "userName", 
                 c.content AS comment, 
                 c.created_at AS timestamp,
-                c.like_count AS likeCount,
-                c.dislike_count AS dislikeCount,
-               c.subcomments_count AS subCommentsCount,
-                EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $1) AS haveLiked,
-                EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $1) AS haveDisliked
+                c.like_count AS "likeCount",
+                c.dislike_count AS "dislikeCount",
+               c.subcomments_count AS "subCommentsCount",
+                EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $1) AS "haveLiked",
+                EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $1) AS "haveDisliked"
             FROM comments c
             WHERE c.id = $2`,
         [user_id, commentId]
@@ -200,8 +200,8 @@ class Queries {
         `SELECT 
           s.comment_id AS commentId,
           s.id AS subcommentId,
-              s.user_id, 
-              s.user_name, 
+              s.user_id AS userId, 
+              s.user_name AS userName, 
               s.content AS comment, 
               s.created_at AS timestamp,
               s.like_count AS likeCount,
@@ -243,22 +243,22 @@ class Queries {
   
       const queryText = `
         SELECT 
-          c.id AS commentId,
-          c.user_id, 
-          c.user_name, 
+          c.id AS "commentId",
+          c.user_id AS "userId", 
+          c.user_name  AS "userName", 
           c.content AS comment, 
           c.created_at AS timestamp,
-          c.like_count AS likeCount,
-          c.dislike_count AS dislikeCount,
-          c.subcomments_count AS subCommentsCount,  
-          EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $2) AS haveLiked,
-          EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $2) AS haveDisliked
+          c.like_count AS "likeCount",
+          c.dislike_count AS "dislikeCount",
+          c.subcomments_count AS "subCommentsCount",  
+          EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $2) AS "haveLiked",
+          EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $2) AS "haveDisliked"
         FROM comments c
         ORDER BY c.created_at DESC
-        LIMIT 5 OFFSET $1
+        LIMIT 10 OFFSET $1
       `;
   
-      const result = await client.query(queryText, [offset,user_id]);
+      const result = await client.query(queryText, [offset*10,user_id]);
   
       await client.query("COMMIT");
       return {
@@ -286,19 +286,28 @@ class Queries {
       await client.query("BEGIN");
   
       const queryText = `
-        SELECT 
-          s.id AS subcommentId,
-          s.user_id, 
-          s.user_name, 
-          s.content AS subcomment,
-          s.created_at AS timestamp,
-          s.like_count AS likeCount,
-          s.dislike_count AS dislikeCount,
-          EXISTS (SELECT 1 FROM subcomment_likes WHERE subcomment_id = s.id AND user_id = $2) AS haveLiked,
-          EXISTS (SELECT 1 FROM subcomment_dislikes WHERE subcomment_id = s.id AND user_id = $2) AS haveDisliked
-        FROM subcomments s
-        WHERE s.comment_id = $1::integer
-        ORDER BY s.created_at ASC
+ SELECT 
+    s.id AS "subcommentId",
+    s.user_id AS "userId", 
+    s.user_name AS "userName", 
+    s.content AS comment,
+    s.created_at AS timestamp,
+    s.like_count AS "likeCount",
+    s.dislike_count AS "dislikeCount",
+    EXISTS (
+        SELECT 1 FROM subcomment_likes sl 
+        WHERE sl.subcomment_id = s.id 
+        AND sl.user_id = $2::varchar
+    ) AS "haveLiked",
+    EXISTS (
+        SELECT 1 FROM subcomment_dislikes sd 
+        WHERE sd.subcomment_id = s.id 
+        AND sd.user_id = $2::varchar
+    ) AS "haveDisliked"
+FROM subcomments s
+WHERE s.comment_id = $1::integer
+ORDER BY s.created_at ASC;
+
       `;
       
       const result = await client.query(queryText, [comment_id, user_id]);
@@ -337,8 +346,8 @@ class Queries {
         const tempRes = await this.RemoveLikeComment(user_id, comment_id);
         console.log(tempRes);
         return {
-          success: false,
-          message: "You have already liked this comment",
+          success: true,
+          message: "Like removed for the commentcomment :)",
         };
       }
       const checkDislikeQuery = `SELECT * FROM comment_dislikes WHERE user_id = $1 AND comment_id = $2`;
@@ -387,8 +396,8 @@ class Queries {
         const tempRes = await this.RemoveDislikeComment(user_id, comment_id);
         console.log(tempRes);
         return {
-          success: false,
-          message: "You have already disliked this comment",
+          success: true,
+          message: "Dislike removed for the comment :)",
         };
       }
       const checkLikeQuery = `SELECT * FROM comment_likes WHERE user_id = $1 AND comment_id = $2`;
@@ -427,41 +436,39 @@ class Queries {
       console.log(chalk.red("No DB client available."));
       return { success: false, message: "Database unavailable" };
     }
-
+  
     try {
       await client.query("BEGIN");
-      const checkQuery = `SELECT * FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`;
-      const checkRes = await client.query(checkQuery, [user_id, subcomment_id]);
-
-      if (checkRes.rowCount > 0) {
-        const tempRes = await this.RemoveLikeSubComment(user_id, subcomment_id);
-        console.log(tempRes)
-        return {
-          success: false,
-          message: "Subcomment like deleted successfully !",
-        };
+      const checkLikeQuery = `SELECT 1 FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`;
+      const checkLikeRes = await client.query(checkLikeQuery, [user_id, subcomment_id]);
+  
+      if (checkLikeRes.rowCount > 0) {
+        await client.query(`DELETE FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`, [user_id, subcomment_id]);
+        await client.query(`UPDATE subcomments SET like_count = like_count - 1 WHERE id = $1 AND like_count > 0`, [subcomment_id]);
+  
+        await client.query("COMMIT");
+        return { success: true, message: "Like removed from reply!" };
       }
-      const checkDislikeQuery = `SELECT * FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`;
-      const checkDislikeRes = await client.query(checkDislikeQuery, [
-        user_id,
-        subcomment_id,
-      ]);
+      const checkDislikeQuery = `SELECT 1 FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`;
+      const checkDislikeRes = await client.query(checkDislikeQuery, [user_id, subcomment_id]);
+  
       if (checkDislikeRes.rowCount > 0) {
-        const tempRes = await this.RemoveDislikeSubComment(
-          user_id,
-          subcomment_id
-        );
-        console.log(tempRes);
+        await client.query(`DELETE FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`, [user_id, subcomment_id]);
+        await client.query(`UPDATE subcomments SET dislike_count = dislike_count - 1 WHERE id = $1 AND dislike_count > 0`, [subcomment_id]);
       }
+
       await client.query(
-        `INSERT INTO subcomment_likes (user_id, subcomment_id) VALUES ($1, $2)`,
+        `INSERT INTO subcomment_likes (user_id, subcomment_id) 
+         VALUES ($1, $2) 
+         ON CONFLICT (user_id, subcomment_id) DO NOTHING`,
         [user_id, subcomment_id]
       );
+  
       await client.query(
         `UPDATE subcomments SET like_count = like_count + 1 WHERE id = $1`,
         [subcomment_id]
       );
-
+  
       await client.query("COMMIT");
       return { success: true, message: "Subcomment liked successfully" };
     } catch (e) {
@@ -473,48 +480,46 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
-
+  
   async DislikeSubcomment(user_id, subcomment_id) {
     const client = await db.getClient();
     if (!client) {
       console.log(chalk.red("No DB client available."));
       return { success: false, message: "Database unavailable" };
     }
-
+  
     try {
       await client.query("BEGIN");
-      const checkQuery = `SELECT * FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`;
-      const checkRes = await client.query(checkQuery, [user_id, subcomment_id]);
-
-      if (checkRes.rowCount > 0) {
-        const tempRes = await this.RemoveDislikeSubComment(
-          user_id,
-          subcomment_id
-        );
-        console.log(tempRes);
-        return {
-          success: false,
-          message: "You have already disliked this subcomment",
-        };
+      const checkDislikeQuery = `SELECT 1 FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`;
+      const checkDislikeRes = await client.query(checkDislikeQuery, [user_id, subcomment_id]);
+  
+      if (checkDislikeRes.rowCount > 0) {
+        await client.query(`DELETE FROM subcomment_dislikes WHERE user_id = $1 AND subcomment_id = $2`, [user_id, subcomment_id]);
+        await client.query(`UPDATE subcomments SET dislike_count = dislike_count - 1 WHERE id = $1 AND dislike_count > 0`, [subcomment_id]);
+  
+        await client.query("COMMIT");
+        return { success: true, message: "Dislike removed from reply!" };
       }
-      const checkLikeQuery = `SELECT * FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`;
-      const checkLikeRes = await client.query(checkLikeQuery, [
-        user_id,
-        subcomment_id,
-      ]);
+      const checkLikeQuery = `SELECT 1 FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`;
+      const checkLikeRes = await client.query(checkLikeQuery, [user_id, subcomment_id]);
+  
       if (checkLikeRes.rowCount > 0) {
-        const tempRes = await this.RemoveLikeSubComment(user_id, subcomment_id);
-        console.log(tempRes);
+        await client.query(`DELETE FROM subcomment_likes WHERE user_id = $1 AND subcomment_id = $2`, [user_id, subcomment_id]);
+        await client.query(`UPDATE subcomments SET like_count = like_count - 1 WHERE id = $1 AND like_count > 0`, [subcomment_id]);
       }
+  
       await client.query(
-        `INSERT INTO subcomment_dislikes (user_id, subcomment_id) VALUES ($1, $2)`,
+        `INSERT INTO subcomment_dislikes (user_id, subcomment_id) 
+         VALUES ($1, $2) 
+         ON CONFLICT (user_id, subcomment_id) DO NOTHING`,
         [user_id, subcomment_id]
       );
+  
       await client.query(
         `UPDATE subcomments SET dislike_count = dislike_count + 1 WHERE id = $1`,
         [subcomment_id]
       );
-
+  
       await client.query("COMMIT");
       return { success: true, message: "Subcomment disliked successfully" };
     } catch (e) {
@@ -526,6 +531,7 @@ class Queries {
       console.log(chalk.yellowBright("Client released"));
     }
   }
+  
 
   async RemoveLikeComment(user_id, comment_id) {
     const client = await db.getClient();
@@ -755,21 +761,21 @@ class Queries {
       }
 
       await client.query(
-        `UPDATE comments SET content = $1 WHERE id = $ 2`,
+        `UPDATE comments SET content = $1 WHERE id = $2`,
         [content,comment_id]
       );
       const finalResult = await client.query(
         `SELECT 
-            c.id AS commentId,
-            c.user_id, 
-            c.user_name, 
+            c.id AS "commentId",
+            c.user_id AS "userId", 
+            c.user_name AS "userName", 
             c.content AS comment, 
             c.created_at AS timestamp,
-            c.like_count AS likeCount,
-            c.dislike_count AS dislikeCount,
-            c.subcomments_count AS subCommentsCount,  
-            EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $1) AS haveLiked,
-            EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $1) AS haveDisliked
+            c.like_count AS "likeCount",
+            c.dislike_count AS "dislikeCount",
+            c.subcomments_count AS "subCommentsCount",  
+            EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = $1) AS "haveLiked",
+            EXISTS (SELECT 1 FROM comment_dislikes WHERE comment_id = c.id AND user_id = $1) AS "haveDisliked"
             FROM comments c
             WHERE c.id = $2`,
         [user_id, comment_id]
@@ -817,17 +823,17 @@ class Queries {
       );
       const finalResult = await client.query(
         `SELECT 
-            s.comment_id AS commentId,
-            s.id AS subcommentId,
-            s.user_id, 
-            s.user_name, 
+            s.comment_id AS "commentId",
+            s.id AS "subcommentId",
+            s.user_id AS "userId", 
+            s.user_name AS "userName", 
             s.content AS comment, 
             s.created_at AS timestamp,
-            s.like_count AS likeCount,
-            s.dislike_count AS dislikeCount,
-            c.subcomments_count AS subCommentsCount,  
-            EXISTS (SELECT 1 FROM subcomment_likes WHERE subcomment_id = s.id AND user_id = $1) AS haveLiked,
-            EXISTS (SELECT 1 FROM subcomment_dislikes WHERE subcomment_id = s.id AND user_id = $1) AS haveDisliked
+            s.like_count AS "likeCount",
+            s.dislike_count AS "dislikeCount",
+            c.subcomments_count AS "subCommentsCount",  
+            EXISTS (SELECT 1 FROM subcomment_likes WHERE subcomment_id = s.id AND user_id = $1) AS "haveLiked",
+            EXISTS (SELECT 1 FROM subcomment_dislikes WHERE subcomment_id = s.id AND user_id = $1) AS "haveDisliked"
             FROM subcomments s
            JOIN comments c ON s.comment_id = c.id
            WHERE s.id = $2`,
