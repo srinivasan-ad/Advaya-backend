@@ -11,24 +11,24 @@ class Helper {
     },
   });
 
-  static async sendRegistrationEmail(toEmail, leaderName) {
+  static async sendRegistrationEmail(toEmail, leaderName,teamName,themeName) {
     const mailOptions = {
       from: process.env.ADMIN_EMAIL,
       to: toEmail,
       subject: "Registration Successful",
       text: `Hello ${leaderName},\n\nYour registration was successful. Welcome aboard!\n\nBest Regards,\nHackathon Team`,
       html: `<p>Hello <b>${leaderName}</b>,</p>
-             <p>Your registration was successful. Welcome aboard!</p>
+             <p>Your team -> <b>${teamName}</b>'s registration under the theme <b><u>${themeName}</u></b> was successful. Welcome aboard!</p>
              <p>Best Regards,<br>Hackathon Team</p>`,
     };
 
     try {
       const info = await Helper.transporter.sendMail(mailOptions);
       console.log(chalk.green(`Email sent: ${info.messageId}`));
-      return true;
+      return;
     } catch (error) {
       console.error(chalk.red("Error sending email:", error));
-      return false;
+      return;
     }
   }
 }

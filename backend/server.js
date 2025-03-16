@@ -5,7 +5,8 @@ const Middleware = require("./Middleware/middleware");
 const { errorHandlers } = require("./ErrorHelpers/error");
 const db = require("./Database/connection");
 const Queries = require("./Database/Queries");
-const Helper = require("./HelperFunctions/Helper");
+const Helper = require("./Microservice/Microservice");
+
 
 
 
@@ -16,7 +17,10 @@ const queries = new Queries()
 const helper = new Helper();
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
-app.use(cors())
+
+app.use(cors({
+    origin: "https://00d3-106-222-203-37.ngrok-free.app"
+}));
 app.use((req,res,next) => {
     middleware.routeHit(req,res,next)
 })
@@ -37,13 +41,16 @@ if(result)
     }
 })
 app.post("/register" , async(req,res) => {
-    const {leaderName,collegeName,email,phone,backupEmail,backupPhone,member1,member2,member3} = req.body
+    const {leaderName,collegeName,email,phone,backupEmail,backupPhone,teamName,themeName,member1,member2,member3} = req.body
     try{
-        const result = await queries.Register(leaderName,collegeName,email,phone,backupEmail,backupPhone,member1,member2,member3)
+        const result = await queries.Register(leaderName,collegeName,email,phone,backupEmail,backupPhone,teamName,themeName,member1,member2,member3)
         if(result.success)
         {
-       await  Helper.sendRegistrationEmail(email,leaderName)
+       await  Helper.sendRegistrationEmail(email,leaderName,teamName,themeName)
         return res.status(200).json(result)
+        }
+        else{
+            return res.json(result)
         }
     }
     catch (e) {
