@@ -363,7 +363,7 @@ app.get("/subcomments/:id/likes-dislikes", async (req, res) => {
 app.post("/payment/create-order", async (req, res) => {
   try {
     const paymentDetails = {
-      amount: 1,
+      amount: 1 * 100,
       currency: "INR",
       receipt: "receipt#1",
     };
@@ -388,8 +388,9 @@ app.post("/payment/verify-order", async (req, res) => {
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, formData } =
       req.body;
+    console.log(formData);
     const secret = razorpay.key_secret;
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const isValidSignature = validateWebhookSignature(
@@ -398,13 +399,13 @@ app.post("/payment/verify-order", async (req, res) => {
       secret
     );
     if (isValidSignature) {
-      return res.status(200).json({
+      res.status(200).json({
         success: true, message: "Payment verification successfully",
         verified: true,
       });
     }
     else {
-      return res.status(200).json({
+      res.status(200).json({
         success: true, message: "Payment verification failed",
         verified: false,
       });
