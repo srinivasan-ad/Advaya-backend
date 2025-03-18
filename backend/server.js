@@ -1,14 +1,17 @@
 const express = require("express");
 const cors = require("cors");
+require('./Database/retry')
+require('./Microservice/retry_mail')
 const chalk = require("chalk");
 const Middleware = require("./Middleware/middleware");
 const { errorHandlers } = require("./ErrorHelpers/error");
 const db = require("./Database/connection");
 const Queries = require("./Database/Queries");
 const Helper = require("./Microservice/Microservice");
-const generateShortUUID = require("./Helper/helper");
+
 const Razorpay = require("razorpay");
 const { validateWebhookSignature } = require("razorpay/dist/utils/razorpay-utils");
+const { generateShortUUID } = require("./Database/helper");
 
 require("dotenv").config();
 const app = express();
@@ -45,47 +48,34 @@ app.get("/ping", async (req, res) => {
 });
 app.post("/register", async (req, res) => {
   const {
-    leaderName,
-    collegeName,
-    email,
-    phone,
-    backupEmail,
-    backupPhone,
-    teamName,
-    themeName,
-    member1,
-    member2,
-    member3,
-    razorpay_order_id, 
-    razorpay_payment_id, 
-    razorpay_signature
+   formData
   } = req.body;
   try {
     const uuid = generateShortUUID();
     console.log(uuid);
     const result = await queries.Register(
       uuid,
-      leaderName,
-      collegeName,
-      email,
-      phone,
-      backupEmail,
-      backupPhone,
-      teamName,
-      themeName,
-      member1,
-      member2,
-      member3,
+      formData.leaderName,
+      formData.collegeName,
+      formData.email,
+      formData.phone,
+      formData.backupEmail,
+      formData.backupPhone,
+      formData.teamName,
+      formData.themeName,
+      formData.member1,
+      formData.member2,
+      formData.member3,
       razorpay_order_id, 
       razorpay_payment_id, 
       razorpay_signature
     );
     if (result.success) {
       await Helper.sendRegistrationEmail(
-        email,
-        leaderName,
-        teamName,
-        themeName
+        formData.email,
+        formData.leaderName,
+        formData.teamName,
+        formData.themeName
       );
       return res.status(200).json(result);
     } else {
@@ -387,7 +377,9 @@ app.post("/payment/create-order", async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
+let verified = false;
+let emailSent = false;
+let whatsappSent = false;
 app.post("/payment/verify-order", async (req, res) => {
   try {
     const razorpay = new Razorpay({
@@ -395,18 +387,9 @@ app.post("/payment/verify-order", async (req, res) => {
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature,
-      leaderName,
-      collegeName,
-      email,
-      phone,
-      backupEmail,
-      backupPhone,
-      teamName,
-      themeName,
-      member1,
-      member2,
-      member3,
+      formData
     } = req.body; 
+    console.log(formData)
     // console.log();
     const secret = razorpay.key_secret;
     const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -416,43 +399,43 @@ app.post("/payment/verify-order", async (req, res) => {
       secret
     );
     if (isValidSignature) {
-      res.status(200).json({
-        success: true, message: "Payment verification successfully",
-        verified: true,
-      });
+     verified = true
     }
     else {
-      res.status(200).json({
-        success: true, message: "Payment verification failed",
-        verified: false,
-      });
+   
+        verified = false
+  
     }
     const uuid = generateShortUUID();
     console.log(uuid);
-    const result = await queries.Register(
+    
+    let result = await queries.Register(
       uuid,
-      leaderName,
-      collegeName,
-      email,
-      phone,
-      backupEmail,
-      backupPhone,
-      teamName,
-      themeName,
-      member1,
-      member2,
-      member3,
+      formData.leaderName,
+      formData.collegeName,
+      formData.email,
+      formData.phone,
+      formData.backupEmail,
+      formData.backupPhone,
+      formData.teamName,
+      formData.themeName,
+      formData.member1,
+      formData.member2,
+      formData.member3,
       razorpay_order_id, 
       razorpay_payment_id, 
       razorpay_signature
     );
     if (result.success) {
-      await Helper.sendRegistrationEmail(
-        email,
-        leaderName,
-        teamName,
-        themeName
+    const mail_res =   await Helper.sendRegistrationEmail(
+        formData.email,
+        formData.leaderName,
+        formData.teamName,
+        formData.themeName
       );
+      console.log(mail_res)
+ result.verified = true
+      console.log(result)
       return res.status(200).json(result);
     } else {
       return res.json(result);

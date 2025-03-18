@@ -1,5 +1,8 @@
 const chalk = require("chalk");
 const db = require("./connection");
+const { saveToFile } = require("./helper");
+;
+
 class Queries {
   async Ping() {
     const client = await db.getClient();
@@ -48,44 +51,36 @@ class Queries {
     razorpay_payment_id,
     razorpay_signature
   ) {
-    const client = await db.getClient()
+    const client = await db.getClient();
+ 
+    if (!client) {
+      console.log(chalk.red("DB connection failed for Register function."));
+        saveToFile({
+        uuid, leader, college, email, phone, backup_email, backup_phone,
+        team_name, theme_name, member1, member2, member3,
+        razorpay_order_id, razorpay_payment_id, razorpay_signature
+      });
+      return { success: true, message:  "Team registered successfully",teamId : uuid };
+    }
 if(client)
 {
 
     try {
       await client.query("BEGIN");
-      const themeRes = await client.query(
-        "SELECT id FROM themes WHERE name = $1",
-        [theme_name]
-      );
 
-      if (themeRes.rowCount === 0) {
-        await client.query("ROLLBACK");
-        return { success: false, message: "Invalid theme selected" };
-      }
+      const themeRes = await client.query("SELECT id FROM themes WHERE name = $1", [theme_name]);
+
+
 
       const theme_id = themeRes.rows[0].id;
 
       const teamRes = await client.query(
         `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
-         RETURNING uuid`,
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING uuid`,
         [
-          uuid,
-          leader,
-          college,
-          email,
-          phone,
-          backup_email,
-          backup_phone,
-          team_name,
-          theme_id,
-          member1,
-          member2,
-          member3,
-          razorpay_order_id,
-          razorpay_payment_id,
-          razorpay_signature
+          uuid, leader, college, email, phone, backup_email, backup_phone,
+          team_name, theme_id, member1, member2, member3,
+          razorpay_order_id, razorpay_payment_id, razorpay_signature
         ]
       );
 
@@ -94,14 +89,79 @@ if(client)
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error in Register function:"), e);
-      return { success: false, message: "Registration failed due to database error" };
+      saveToFile({
+        uuid, leader, college, email, phone, backup_email, backup_phone,
+        team_name, theme_name, member1, member2, member3,
+        razorpay_order_id, razorpay_payment_id, razorpay_signature
+      });
+      return { success: true, message:  "Team registered successfully",teamId  :uuid };
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }}
+
+  async  Register2(
+    uuid,
+    leader,
+    college,
+    email,
+    phone,
+    backup_email,
+    backup_phone,
+    team_name,
+    theme_name,
+    member1,
+    member2,
+    member3,
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature
+  ) {
+    const client = await db.getClient();
+  
+    if (!client) {
+      console.log(chalk.red("DB connection failed for Register2 function."));
+      return { success: false };
+    }
+  
+    try {
+      await client.query("BEGIN");
+  
+      const themeRes = await client.query(
+        "SELECT id FROM themes WHERE name = $1",
+        [theme_name]
+      );
+  
+      if (!themeRes.rowCount) {
+        await client.query("ROLLBACK");
+        return { success: false };
+      }
+  
+      const theme_id = themeRes.rows[0].id;
+  
+      await client.query(
+        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+        [
+          uuid, leader, college, email, phone, backup_email, backup_phone,
+          team_name, theme_id, member1, member2, member3,
+          razorpay_order_id, razorpay_payment_id, razorpay_signature
+        ]
+      );
+  
+      await client.query("COMMIT");
+      return { success: true };
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in Register2 function:"), error);
+      return { success: false };
     } finally {
       client.release();
       console.log(chalk.yellowBright("Client released"));
     }
   }
-  }
-
+  
   async AddComment(user_id, user_name, content, timestamp) {
     const client = await db.getClient();
     try {
