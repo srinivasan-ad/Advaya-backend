@@ -43,13 +43,14 @@ class Queries {
     theme_name,
     member1,
     member2,
-    member3
+    member3,
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature
   ) {
-    const client = await db.getClient();
-    if (!client) {
-      console.log(chalk.red("No DB client available."));
-      return { success: false, message: "Database unavailable" };
-    }
+    const client = await db.getClient()
+if(client)
+{
 
     try {
       await client.query("BEGIN");
@@ -59,14 +60,16 @@ class Queries {
       );
 
       if (themeRes.rowCount === 0) {
+        await client.query("ROLLBACK");
         return { success: false, message: "Invalid theme selected" };
       }
 
       const theme_id = themeRes.rows[0].id;
 
       const teamRes = await client.query(
-        `INSERT INTO teams (uuid ,leader, college, email, phone, backup_email, backup_phone, team_name, theme_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8 , $9) RETURNING id`,
+        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+         RETURNING uuid`,
         [
           uuid,
           leader,
@@ -77,49 +80,28 @@ class Queries {
           backup_phone,
           team_name,
           theme_id,
+          member1,
+          member2,
+          member3,
+          razorpay_order_id,
+          razorpay_payment_id,
+          razorpay_signature
         ]
       );
 
-      const teamId = teamRes.rows[0].id;
-      const members = [member1, member2, member3];
-
-      for (const member of members) {
-        if (member && member.trim() !== "") {
-          await client.query(
-            "INSERT INTO members (team_id, name) VALUES ($1, $2)",
-            [teamId, member]
-          );
-        }
-      }
-
       await client.query("COMMIT");
-      return { success: true, message: "Team registered successfully" };
+      return { success: true, message: "Team registered successfully", teamId: teamRes.rows[0].uuid };
     } catch (e) {
       await client.query("ROLLBACK");
-
-      if (e.detail?.includes("Key (email)")) {
-        return { success: false, message: "This email is already registered" };
-      } else if (e.detail?.includes("Key (phone)")) {
-        return {
-          success: false,
-          message: "This phone number is already registered",
-        };
-      } else if (e.detail?.includes("Key (team_name)")) {
-        return {
-          success: false,
-          message: "This team_name is already registered",
-        };
-      }
-      console.log(chalk.red("Error in Register:"), e);
-      return {
-        success: false,
-        message: "Registration failed due to incomplete data",
-      };
+      console.log(chalk.red("Error in Register function:"), e);
+      return { success: false, message: "Registration failed due to database error" };
     } finally {
       client.release();
       console.log(chalk.yellowBright("Client released"));
     }
   }
+  }
+
   async AddComment(user_id, user_name, content, timestamp) {
     const client = await db.getClient();
     try {

@@ -56,6 +56,9 @@ app.post("/register", async (req, res) => {
     member1,
     member2,
     member3,
+    razorpay_order_id, 
+    razorpay_payment_id, 
+    razorpay_signature
   } = req.body;
   try {
     const uuid = generateShortUUID();
@@ -72,7 +75,10 @@ app.post("/register", async (req, res) => {
       themeName,
       member1,
       member2,
-      member3
+      member3,
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature
     );
     if (result.success) {
       await Helper.sendRegistrationEmail(
@@ -388,9 +394,20 @@ app.post("/payment/verify-order", async (req, res) => {
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, formData } =
-      req.body;
-    console.log(formData);
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature,
+      leaderName,
+      collegeName,
+      email,
+      phone,
+      backupEmail,
+      backupPhone,
+      teamName,
+      themeName,
+      member1,
+      member2,
+      member3,
+    } = req.body; 
+    // console.log();
     const secret = razorpay.key_secret;
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const isValidSignature = validateWebhookSignature(
@@ -409,6 +426,36 @@ app.post("/payment/verify-order", async (req, res) => {
         success: true, message: "Payment verification failed",
         verified: false,
       });
+    }
+    const uuid = generateShortUUID();
+    console.log(uuid);
+    const result = await queries.Register(
+      uuid,
+      leaderName,
+      collegeName,
+      email,
+      phone,
+      backupEmail,
+      backupPhone,
+      teamName,
+      themeName,
+      member1,
+      member2,
+      member3,
+      razorpay_order_id, 
+      razorpay_payment_id, 
+      razorpay_signature
+    );
+    if (result.success) {
+      await Helper.sendRegistrationEmail(
+        email,
+        leaderName,
+        teamName,
+        themeName
+      );
+      return res.status(200).json(result);
+    } else {
+      return res.json(result);
     }
   } catch (error) {
     console.error("Payment verification Error:", error);
