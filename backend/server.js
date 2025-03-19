@@ -50,6 +50,17 @@ app.get("/ping", async (req, res) => {
 
 app.post("/coupon_test", async (req,res) =>{ 
   const {couponCode} = req.body
+  try{
+    const result = await queries.couponsValidation(couponCode);
+    if (!result.success){
+      return res.status(400).json(result)
+    }
+    return res.status(200).json(result)
+  }
+  catch (e){
+    return res.status(500).json({success: false, message: "internal server error"})
+
+  }
 })
 app.post("/twilio_test",async (req,res) => 
 {

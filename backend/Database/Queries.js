@@ -51,24 +51,18 @@ class Queries {
         return {success: false, message: "Invalid coupon code"};
       }
 
-      if (res.rows[0].value <= 0){
+      if (res.rows[0].availability <= 0){
         return {success: false, message: "coupon has expired"};
       }
-
-      const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE couponCode = $1;";
-      
-
+console.log(res.rows[0].availability)
+console.log(res.rows[0].id)
+      const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE id = $1;"
+      await client.query(updateQuery, [res.rows[0].id]);
       await client.query("COMMIT");
-
-      if (res.rows.length > 0) {
-        return res.rows[0].value;
-      } else {
-        console.log(chalk.yellow("No data found in ping table."));
-        return null;
-      }
+      return {success: true, message: "coupon successfully applied!"};
     } catch (e) {
       await client.query("ROLLBACK");
-      console.log(chalk.red("Error in Ping Query:"), e);
+      console.log(chalk.red("Error applying coupon code"), e);
       throw e;
     } finally {
       client.release();
