@@ -47,6 +47,10 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
+
+app.post("/coupon_test", async (req,res) =>{ 
+  const {couponCode} = req.body
+})
 app.post("/twilio_test",async (req,res) => 
 {
   await twilloWhatsapp()

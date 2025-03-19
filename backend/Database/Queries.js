@@ -34,6 +34,48 @@ class Queries {
       return null;
     }
   }
+
+  async couponsValidation(couponCode){
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("DB connection failed"));
+      return { success: false , message : "db is not connected" };
+    }
+    try {
+      await client.query("BEGIN");
+
+      const queryText = "SELECT * FROM coupons where couponCode = $1;";
+      const res = await client.query(queryText, [couponCode]);
+
+      if (!(res.rowCount > 0)){
+        return {success: false, message: "Invalid coupon code"};
+      }
+
+      if (res.rows[0].value <= 0){
+        return {success: false, message: "coupon has expired"};
+      }
+
+      const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE couponCode = $1;";
+      
+
+      await client.query("COMMIT");
+
+      if (res.rows.length > 0) {
+        return res.rows[0].value;
+      } else {
+        console.log(chalk.yellow("No data found in ping table."));
+        return null;
+      }
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error in Ping Query:"), e);
+      throw e;
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
+
   async Register(
     uuid,
     leader,
