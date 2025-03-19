@@ -12,6 +12,7 @@ const Helper = require("./Microservice/Microservice");
 const Razorpay = require("razorpay");
 const { validateWebhookSignature } = require("razorpay/dist/utils/razorpay-utils");
 const { generateShortUUID } = require("./Database/helper");
+const twilloWhatsapp = require("./Microservice/Whatsapp");
 
 require("dotenv").config();
 const app = express();
@@ -46,6 +47,10 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
+app.post("/twilio_test",async (req,res) => 
+{
+  await twilloWhatsapp()
+})
 app.post("/register", async (req, res) => {
   const {
    formData
