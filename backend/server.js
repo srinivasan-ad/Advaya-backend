@@ -78,10 +78,7 @@ app.post("/coupon_validation", async (req,res) =>{
 app.post("/coupon_confirm" , async(req,res) => 
 {
   const {couponCode} = req.body;
-  if(couponCode)
-  {
-    paymentAmount = 1
-  }
+  
   else{
     paymentAmount = 2
   }
