@@ -13,6 +13,8 @@ const Razorpay = require("razorpay");
 const { validateWebhookSignature } = require("razorpay/dist/utils/razorpay-utils");
 const { generateShortUUID } = require("./Database/helper");
 const twilloWhatsapp = require("./Microservice/Whatsapp");
+const { v4 } = require("uuid");
+const cookieParser = require("cookie-parser")
 
 require("dotenv").config();
 const app = express();
@@ -21,10 +23,12 @@ const queries = new Queries();
 const helper = new Helper();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser(process.env.SECRET))
 
 app.use(
   cors({
     origin: "http://localhost:3000",
+    credentials: true
   })
 );
 app.use((_, res, next) => {
@@ -48,27 +52,26 @@ app.get("/ping", async (req, res) => {
   }
 });
 
-app.post("/coupon_test", async (req,res) =>{ 
-  const {couponCode} = req.body
-  try{
+app.post("/coupon_test", async (req, res) => {
+  const { couponCode } = req.body
+  try {
     const result = await queries.couponsValidation(couponCode);
-    if (!result.success){
+    if (!result.success) {
       return res.status(400).json(result)
     }
     return res.status(200).json(result)
   }
-  catch (e){
-    return res.status(500).json({success: false, message: "internal server error"})
+  catch (e) {
+    return res.status(500).json({ success: false, message: "internal server error" })
 
   }
 })
-app.post("/twilio_test",async (req,res) => 
-{
+app.post("/twilio_test", async (req, res) => {
   await twilloWhatsapp()
 })
 app.post("/register", async (req, res) => {
   const {
-   formData
+    formData
   } = req.body;
   try {
     const uuid = generateShortUUID();
@@ -86,8 +89,8 @@ app.post("/register", async (req, res) => {
       formData.member1,
       formData.member2,
       formData.member3,
-      razorpay_order_id, 
-      razorpay_payment_id, 
+      razorpay_order_id,
+      razorpay_payment_id,
       razorpay_signature
     );
     if (result.success) {
@@ -290,16 +293,22 @@ app.post("/subcomment/:subcomment_id/dislike", async (req, res) => {
   }
 });
 
+const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
+
 app.delete("/comment/:comment_id", async (req, res) => {
   const { user_id } = req.body;
   const { comment_id } = req.params;
-
+  const password = req.header("admin-password");
+  let isAdmin = false;
+  if (password === ADMIN_COMMENT_PASS) {
+    isAdmin = true;
+  }
   if (!user_id || !comment_id) {
     return res.status(400).json({ success: false, message: "User ID and Comment ID are required" });
   }
 
   try {
-    const result = await queries.DeleteComment(comment_id, user_id);
+    const result = await queries.DeleteComment(comment_id, user_id, isAdmin);
     return res.status(result.success ? 200 : 400).json(result);
   } catch (e) {
     console.error("Error in comment_id", e);
@@ -309,13 +318,18 @@ app.delete("/comment/:comment_id", async (req, res) => {
 app.delete("/subcomment/:subcomment_id", async (req, res) => {
   const { user_id } = req.body;
   const { subcomment_id } = req.params;
-
+  const password = req.header("admin-password");
+  let isAdmin = false;
+  if (password === ADMIN_COMMENT_PASS) {
+    isAdmin = true;
+  }
+  console.log(isAdmin, password);
   if (!user_id || !subcomment_id) {
     return res.status(400).json({ success: false, message: "User ID and Subcomment ID are required" });
   }
 
   try {
-    const result = await queries.DeleteSubcomment(subcomment_id, user_id);
+    const result = await queries.DeleteSubcomment(subcomment_id, user_id, isAdmin);
     return res.status(result.success ? 200 : 400).json(result);
   } catch (e) {
     console.error("Error in subcomment_id", e);
@@ -408,7 +422,7 @@ app.post("/payment/verify-order", async (req, res) => {
     });
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature,
       formData
-    } = req.body; 
+    } = req.body;
     console.log(formData)
     // console.log();
     const secret = razorpay.key_secret;
@@ -419,16 +433,16 @@ app.post("/payment/verify-order", async (req, res) => {
       secret
     );
     if (isValidSignature) {
-     verified = true
+      verified = true
     }
     else {
-   
-        verified = false
-  
+
+      verified = false
+
     }
     const uuid = generateShortUUID();
     console.log(uuid);
-    
+
     let result = await queries.Register(
       uuid,
       formData.leaderName,
@@ -442,19 +456,19 @@ app.post("/payment/verify-order", async (req, res) => {
       formData.member1,
       formData.member2,
       formData.member3,
-      razorpay_order_id, 
-      razorpay_payment_id, 
+      razorpay_order_id,
+      razorpay_payment_id,
       razorpay_signature
     );
     if (result.success) {
-    const mail_res =   await Helper.sendRegistrationEmail(
+      const mail_res = await Helper.sendRegistrationEmail(
         formData.email,
         formData.leaderName,
         formData.teamName,
         formData.themeName
       );
       console.log(mail_res)
- result.verified = true
+      result.verified = true
       console.log(result)
       return res.status(200).json(result);
     } else {
@@ -463,6 +477,68 @@ app.post("/payment/verify-order", async (req, res) => {
   } catch (error) {
     console.error("Payment verification Error:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
+const sessionIds = [];
+app.post("/admin/login", (req, res) => {
+  try {
+    const { password } = req.body;
+    if (password === ADMIN_PASS) {
+      const sessionId = v4();
+      sessionIds.push(sessionId);
+      res.cookie("sessionId", sessionId, {
+        httpOnly: true,
+        secure: true,
+        signed: true,
+        path: "/",
+        sameSite: "none",
+        maxAge: 1000 * 60 * 60 * 24 * 30,
+      });
+      res.status(200).send({
+        success: true,
+        pass: true,
+        message: "Password is correct. You can use all admin APIs."
+      });
+      return;
+    }
+    else {
+      res.status(200).send({
+        success: true,
+        pass: false,
+        message: "Password is incorrect"
+      });
+      return;
+    }
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error", error });
+  }
+});
+
+app.post("/admin/verify", (req, res) => {
+  try {
+    const { sessionId } = req.signedCookies;
+    if (sessionIds.includes(sessionId)) {
+      res.status(200).send({
+        success: true,
+        doLogin: false,
+        message: "Welcome Admin."
+      });
+      return;
+    }
+    else {
+      res.status(200).send({
+        success: true,
+        doLogin: true,
+        message: "Please login."
+      });
+      return;
+    }
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error", error });
   }
 });
 

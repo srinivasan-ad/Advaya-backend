@@ -753,7 +753,7 @@ ORDER BY s.created_at ASC;
       console.log(chalk.yellowBright("Client released"));
     }
   }
-  async DeleteSubcomment(subcomment_id, user_id) {
+  async DeleteSubcomment(subcomment_id, user_id, isAdmin = false) {
     const client = await db.getClient();
     if (!client) {
       console.log(chalk.red("No DB client available."));
@@ -763,8 +763,8 @@ ORDER BY s.created_at ASC;
     try {
       await client.query("BEGIN");
 
-      const checkQuery = `SELECT * FROM subcomments WHERE id = $1 AND user_id = $2`;
-      const checkRes = await client.query(checkQuery, [subcomment_id, user_id]);
+      const checkQuery = `SELECT * FROM subcomments WHERE id = $1 AND (user_id = $2 OR $3::boolean)`;
+      const checkRes = await client.query(checkQuery, [subcomment_id, user_id, isAdmin]);
 
       if (checkRes.rowCount === 0) {
         await client.query("ROLLBACK");
@@ -791,7 +791,7 @@ ORDER BY s.created_at ASC;
     }
   }
 
-  async DeleteComment(comment_id, user_id) {
+  async DeleteComment(comment_id, user_id, isAdmin = false) {
     const client = await db.getClient();
     if (!client) {
       return { success: false, message: "Database unavailable" };
@@ -799,8 +799,8 @@ ORDER BY s.created_at ASC;
 
     try {
       await client.query("BEGIN");
-      const checkQuery = `SELECT * FROM comments WHERE id = $1 AND user_id = $2`;
-      const checkRes = await client.query(checkQuery, [comment_id, user_id]);
+      const checkQuery = `SELECT * FROM comments WHERE id = $1 AND (user_id = $2 OR $3::boolean)`;
+      const checkRes = await client.query(checkQuery, [comment_id, user_id, isAdmin]);
 
       if (checkRes.rowCount === 0) {
         await client.query("ROLLBACK");
