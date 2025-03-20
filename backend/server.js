@@ -56,31 +56,36 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
-
+let couponRes;
 app.post("/coupon_validation", async (req,res) =>{ 
   const {couponCode} = req.body
   try{
     const result = await queries.couponsValidation(couponCode);
+    couponRes = result
     if (!result.success) {
       return res.status(400).json(result)
     }
     if(result.success)
-    {
-
-      if(result.id === 5)
-        {
-          paymentAmount = 1500
-        }
-        else{
-          paymentAmount = 1000
-        }
-      }
+    {  
     return res.status(200).json(result)
+  }
   }
   catch (e) {
     return res.status(500).json({ success: false, message: "internal server error" })
 
   }
+})
+app.post("/coupon_confirm" , async(req,res) => 
+{
+  const {couponCode} = req.body;
+  if(couponCode)
+  {
+    paymentAmount = 1000
+  }
+  else{
+    paymentAmount = 2000
+  }
+  return res.status(200).json({amount : paymentAmount , success : true})
 })
 app.post("/twilio_test", async (req, res) => {
   await twilloWhatsapp()
@@ -106,6 +111,7 @@ app.post("/register", async (req, res) => {
       formData.member1,
       formData.member2,
       formData.member3,
+      formData.couponCode,
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature
@@ -117,6 +123,12 @@ app.post("/register", async (req, res) => {
         formData.teamName,
         formData.themeName
       );
+      const updateResult = await queries.updateCoupon(formData.couponCode)
+      result.update_success = updateResult.success
+      result.couponUsed = updateResult.couponId
+      result.availability = updateResult.availability
+      result.updated_mssg = updateResult.message
+
       return res.status(200).json(result);
     } else {
       return res.json(result);
@@ -579,7 +591,22 @@ app.post("/admin/approve/ticket/:ticketid", (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error", error });
   }
 });
+app.post("/whatsapp" , async(req , res) => {
+  const {teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid} = req.body
+  const createMessage = await twilloWhatsapp.createMessage(teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid)
+  console.log(createMessage)
+  const phone_no = req.body.WaId.replace("91", ""); 
+  const message = req.body.Body;
+  console.log(`Received message: "${message}"`);
+  console.log(`Phone number: "${phone_no}"`);
 
+  const response = twilloWhatsapp.response.message()
+  response.body("helooo dis qr ?");
+  response.media(img_src);
+
+  res.set('Content-Type', 'text/xml'); 
+  res.send(response.toString()); 
+})
 app.listen(process.env.PORT, () => {
   console.log(`Server started at http://localhost:${process.env.PORT}`);
 });

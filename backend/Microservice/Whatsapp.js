@@ -7,7 +7,7 @@ const client =  twillo(accountSid,authToken)
 const response = new messaingresponse();
 async function createMessage(teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid) {
   const message = await client.messages.create({
-    contentSid: process.env.CONTENT_SID  ,
+    contdentSid: process.env.CONTENT_SID  ,
     contentVariables: JSON.stringify({
         "1": teamLeader,
         "2": teamName,
@@ -18,7 +18,7 @@ async function createMessage(teamLeadernumber,teamLeader,teamName,member1,member
         "7" : `advaya.bgscet.ac.in/ticket/${uuid}`
     }),
     from: process.env.WHATSAPP_NUMBER,
-    messagingServiceSid: "MG6be191b47f974e4581c35e620b29c127",
+    messagingServiceSid: process.env.MESSAGING_ID,
     to: `whatsapp:+91${teamLeadernumber}`,
   });
 
