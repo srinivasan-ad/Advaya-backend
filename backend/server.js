@@ -57,7 +57,7 @@ app.get("/ping", async (req, res) => {
   }
 });
 let couponRes;
-app.post("/coupon_validation", async (req,res) =>{ 
+app.post("/coupon", async (req,res) =>{ 
   const {couponCode} = req.body
   try{
     const result = await queries.couponsValidation(couponCode);
@@ -74,16 +74,7 @@ app.post("/coupon_validation", async (req,res) =>{
     return res.status(500).json({ success: false, message: "internal server error" })
 
   }
-})
-app.post("/coupon_confirm" , async(req,res) => 
-{
-  const {couponCode} = req.body;
-  
-  else{
-    paymentAmount = 2
-  }
-  return res.status(200).json({amount : paymentAmount , success : true})
-})
+});
 app.post("/twilio_test", async (req, res) => {
   await twilloWhatsapp()
 })
@@ -415,10 +406,12 @@ app.get("/subcomments/:id/likes-dislikes", async (req, res) => {
 // Payment
 app.post("/payment/create-order", async (req, res) => {
   try {
+    const { formData } = req.body;
     const paymentDetails = {
       amount: paymentAmount,
       currency: "INR",
       receipt: "receipt#1",
+      notes: formData
     };
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
