@@ -323,7 +323,6 @@ app.delete("/subcomment/:subcomment_id", async (req, res) => {
   if (password === ADMIN_COMMENT_PASS) {
     isAdmin = true;
   }
-  console.log(isAdmin, password);
   if (!user_id || !subcomment_id) {
     return res.status(400).json({ success: false, message: "User ID and Subcomment ID are required" });
   }
@@ -519,6 +518,32 @@ app.post("/admin/login", (req, res) => {
 
 app.post("/admin/verify", (req, res) => {
   try {
+    const { sessionId } = req.signedCookies;
+    if (sessionIds.includes(sessionId)) {
+      res.status(200).send({
+        success: true,
+        doLogin: false,
+        message: "Welcome Admin."
+      });
+      return;
+    }
+    else {
+      res.status(200).send({
+        success: true,
+        doLogin: true,
+        message: "Please login."
+      });
+      return;
+    }
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error", error });
+  }
+});
+
+app.post("/admin/approve/ticket/:ticketid", (req, res) => {
+  try {
+    const tickerId = req.params.ticketid;
     const { sessionId } = req.signedCookies;
     if (sessionIds.includes(sessionId)) {
       res.status(200).send({
