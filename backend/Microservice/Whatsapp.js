@@ -1,5 +1,8 @@
 require("dotenv").config();
 const twillo = require("twilio")
+const QRCode = require("qrcode");
+const path = require("path");
+const fs = require("fs");
 const messaingresponse = require('twilio').twiml.MessagingResponse;
 const accountSid = process.env.TWILLO_ACCOUNT_SID;
 const authToken = process.env.TWILLO_AUTH_TOKEN;
@@ -26,8 +29,26 @@ async function createMessage(teamLeadernumber,teamLeader,teamName,member1,member
 
   return "message sent";
 }
+async function generateQRFile(link, uuid) {
+  const qrFolder = path.join(__dirname, "public/qrcodes"); 
+  if (!fs.existsSync(qrFolder)) {
+    fs.mkdirSync(qrFolder, { recursive: true });
+  }
 
+  const filename = `qr_${uuid}.png`; 
+  const filePath = path.join(qrFolder, filename);
+
+  try {
+    await QRCode.toFile(filePath, link);
+    console.log("QR Code saved successfully:", filePath);
+    return filePath;
+  } catch (error) {
+    console.error("Error generating QR Code:", error);
+    return null;
+  }
+}
 module.exports = {
     createMessage,
+    generateQRFile,
     response    
 };

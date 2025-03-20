@@ -29,7 +29,7 @@ const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SECRET))
-
+app.use("/qrcodes", express.static(path.join(__dirname, "public/qrcodes")));
 app.use(
   cors({
     origin: "http://localhost:3000",
@@ -56,7 +56,24 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
+app.post("/whatsapp" , async(req , res) => {
+  const {teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid} = req.body
+  const createMessage = await twilloWhatsapp.createMessage(teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid)
+  console.log(createMessage)
+  const phone_no = req.body.WaId; 
+  const message = req.body.Body;
+  console.log(`Received message: "${message}"`);
+  console.log(`Phone number: "${phone_no}"`);
+  const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
+  const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
 
+  const response = twilloWhatsapp.response.message();
+  response.body("QR Code for your ticket:");
+  response.media(qrPublicUrl); 
+
+  res.set("Content-Type", "text/xml");
+  res.send(response.toString());
+})
 app.post("/coupon", async (req,res) =>{ 
   const {couponCode} = req.body
   try{
@@ -74,9 +91,7 @@ app.post("/coupon", async (req,res) =>{
 
   }
 });
-app.post("/twilio_test", async (req, res) => {
-  await twilloWhatsapp()
-})
+
 //change coupon to check validity api then use coupon api to toggle payment in last check the coupon code in form data and secrement it 
 app.post("/register", async (req, res) => {
   const {
@@ -583,13 +598,14 @@ app.post("/whatsapp" , async(req , res) => {
   const {teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid} = req.body
   const createMessage = await twilloWhatsapp.createMessage(teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid)
   console.log(createMessage)
-  const phone_no = req.body.WaId.replace("91", ""); 
+  const phone_no = req.body.WaId; 
   const message = req.body.Body;
   console.log(`Received message: "${message}"`);
   console.log(`Phone number: "${phone_no}"`);
 
   const response = twilloWhatsapp.response.message()
-  response.body("helooo dis qr ?");
+  response.body("qr code");
+  const img_src = "https"
   response.media(img_src);
 
   res.set('Content-Type', 'text/xml'); 
