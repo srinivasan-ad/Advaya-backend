@@ -59,7 +59,7 @@ console.log(res.rows[0].id)
       const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE id = $1;"
       await client.query(updateQuery, [res.rows[0].id]);
       await client.query("COMMIT");
-      return {success: true, message: "coupon successfully applied!"};
+      return {success: true, message: "coupon successfully applied!" , couponUsed : res.rows[0].id};
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error applying coupon code"), e);

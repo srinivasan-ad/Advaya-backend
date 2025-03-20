@@ -19,6 +19,7 @@ const app = express();
 const middleware = new Middleware();
 const queries = new Queries();
 const helper = new Helper();
+let paymentAmount = 2000 ; 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -48,13 +49,24 @@ app.get("/ping", async (req, res) => {
   }
 });
 
-app.post("/coupon_test", async (req,res) =>{ 
+app.post("/coupon_validation", async (req,res) =>{ 
   const {couponCode} = req.body
   try{
     const result = await queries.couponsValidation(couponCode);
     if (!result.success){
       return res.status(400).json(result)
     }
+    if(result.success)
+    {
+
+      if(result.id === 5)
+        {
+          paymentAmount = 1500
+        }
+        else{
+          paymentAmount = 1000
+        }
+      }
     return res.status(200).json(result)
   }
   catch (e){
@@ -66,6 +78,7 @@ app.post("/twilio_test",async (req,res) =>
 {
   await twilloWhatsapp()
 })
+//change coupon to check validity api then use coupon api to toggle payment in last check the coupon code in form data and secrement it 
 app.post("/register", async (req, res) => {
   const {
    formData
@@ -379,7 +392,7 @@ app.get("/subcomments/:id/likes-dislikes", async (req, res) => {
 app.post("/payment/create-order", async (req, res) => {
   try {
     const paymentDetails = {
-      amount: 1 * 100,
+      amount: paymentAmount,
       currency: "INR",
       receipt: "receipt#1",
     };
