@@ -21,7 +21,7 @@ const app = express();
 const middleware = new Middleware();
 const queries = new Queries();
 const helper = new Helper();
-let paymentAmount = 2000 ; 
+let paymentAmount = 2 ; 
 
 const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
 const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
@@ -80,10 +80,10 @@ app.post("/coupon_confirm" , async(req,res) =>
   const {couponCode} = req.body;
   if(couponCode)
   {
-    paymentAmount = 1000
+    paymentAmount = 1
   }
   else{
-    paymentAmount = 2000
+    paymentAmount = 2
   }
   return res.status(200).json({amount : paymentAmount , success : true})
 })
