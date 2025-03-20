@@ -54,12 +54,10 @@ class Queries {
       if (res.rows[0].availability <= 0){
         return {success: false, message: "coupon has expired"};
       }
-console.log(res.rows[0].availability)
-console.log(res.rows[0].id)
-      const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE id = $1;"
-      await client.query(updateQuery, [res.rows[0].id]);
+     console.log(res.rows[0].availability)
+    console.log(res.rows[0].id)
       await client.query("COMMIT");
-      return {success: true, message: "coupon successfully applied!"};
+      return {success: true, message: "coupon is valid !" , couponUsed : res.rows[0].id};
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error applying coupon code"), e);
@@ -69,7 +67,55 @@ console.log(res.rows[0].id)
       console.log(chalk.yellowBright("Client released"));
     }
   }
+  async updateCoupon(couponCode) {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("DB connection failed"));
+      return { success: false, message: "DB is not connected" };
+    }
+  
+    try {
+      await client.query("BEGIN");
+      const queryText = "SELECT * FROM coupons where couponCode = $1;";
+      const res = await client.query(queryText, [couponCode]);
 
+      if (!(res.rowCount > 0)){
+        return {success: false, message: "Invalid coupon code"};
+      }
+
+      if (res.rows[0].availability <= 0){
+        return {success: false, message: "coupon has expired"};
+      }
+     console.log(res.rows[0].availability)
+     console.log(res.rows[0].id)
+      await client.query("COMMIT");
+      const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE id = $1 AND availability > 0 RETURNING availability;";
+      const updateRes = await client.query(updateQuery, [res.rows[0].id]);
+  
+      if (updateRes.rows.length === 0) {
+        await client.query("ROLLBACK"); 
+        return { success: false, message: "Coupon not available or does not exist" };
+      }
+  
+      await client.query("COMMIT");
+  
+      return { 
+        success: true, 
+        message: "Coupon count successfully updated!", 
+        couponUsed: couponId, 
+        availability: updateRes.rows[0].availability 
+      };
+  
+    } catch (e) {
+      await client.query("ROLLBACK"); 
+      console.error("Error updating coupon:", e);
+      return { success: false, message: "Database error" };
+  
+    } finally {
+      client.release();
+    }
+  }
+  
   async Register(
     uuid,
     leader,
