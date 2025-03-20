@@ -397,6 +397,7 @@ app.post("/payment/create-order", async (req, res) => {
       amount: 1 * 100,
       currency: "INR",
       receipt: "receipt#1",
+      notes: req.body
     };
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
