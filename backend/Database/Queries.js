@@ -57,7 +57,30 @@ class Queries {
      console.log(res.rows[0].availability)
     console.log(res.rows[0].id)
       await client.query("COMMIT");
-      return {success: true, message: "coupon is valid !" , couponUsed : res.rows[0].id};
+      return {success: true, message: "coupon is valid !" , couponUsed : res.rows[0].id , amount : res.rows[0].amount};
+    } catch (e) {
+      await client.query("ROLLBACK");
+      console.log(chalk.red("Error applying coupon code"), e);
+      throw e;
+    } finally {
+      client.release();
+      console.log(chalk.yellowBright("Client released"));
+    }
+  }
+  async getAmount(couponCode)
+  {
+    const client = await db.getClient();
+    if (!client) {
+      console.log(chalk.red("DB connection failed"));
+      return { success: false , message : "db is not connected" };
+    }
+    try {
+      await client.query("BEGIN");
+
+      const queryText = "SELECT * FROM coupons where couponCode = $1;";
+      const res = await client.query(queryText, [couponCode]);
+      await client.query("COMMIT");
+      return {success: true, message: "Amount recieved from db !" , couponUsed : res.rows[0].id , amount : res.rows[0].amount};
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error applying coupon code"), e);

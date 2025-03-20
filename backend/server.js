@@ -21,7 +21,7 @@ const app = express();
 const middleware = new Middleware();
 const queries = new Queries();
 const helper = new Helper();
-let paymentAmount = 2 ; 
+
 
 const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
 const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
@@ -56,12 +56,11 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
-let couponRes;
+
 app.post("/coupon", async (req,res) =>{ 
   const {couponCode} = req.body
   try{
     const result = await queries.couponsValidation(couponCode);
-    couponRes = result
     if (!result.success) {
       return res.status(400).json(result)
     }
@@ -407,8 +406,9 @@ app.get("/subcomments/:id/likes-dislikes", async (req, res) => {
 app.post("/payment/create-order", async (req, res) => {
   try {
     const { formData } = req.body;
+    const result = await queries.getAmount(formData.couponCode)
     const paymentDetails = {
-      amount: paymentAmount,
+      amount: result.amount,
       currency: "INR",
       receipt: "receipt#1",
       notes: formData
@@ -428,8 +428,6 @@ app.post("/payment/create-order", async (req, res) => {
   }
 });
 let verified = false;
-let emailSent = false;
-let whatsappSent = false;
 app.post("/payment/verify-order", async (req, res) => {
   try {
     const razorpay = new Razorpay({
