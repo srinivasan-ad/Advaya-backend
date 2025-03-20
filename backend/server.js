@@ -21,6 +21,10 @@ const app = express();
 const middleware = new Middleware();
 const queries = new Queries();
 const helper = new Helper();
+
+const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
+const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SECRET))
@@ -293,8 +297,6 @@ app.post("/subcomment/:subcomment_id/dislike", async (req, res) => {
   }
 });
 
-const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
-
 app.delete("/comment/:comment_id", async (req, res) => {
   const { user_id } = req.body;
   const { comment_id } = req.params;
@@ -478,8 +480,6 @@ app.post("/payment/verify-order", async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
-const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
 const sessionIds = [];
 app.post("/admin/login", (req, res) => {
   try {
