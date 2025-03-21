@@ -78,55 +78,6 @@ app.post("/twilio_test", async (req, res) => {
   await twilloWhatsapp()
 })
 //change coupon to check validity api then use coupon api to toggle payment in last check the coupon code in form data and secrement it 
-app.post("/register", async (req, res) => {
-  const {
-    formData
-  } = req.body;
-  try {
-    const uuid = generateShortUUID();
-    console.log(uuid);
-    const result = await queries.Register(
-      uuid,
-      formData.leaderName,
-      formData.collegeName,
-      formData.email,
-      formData.phone,
-      formData.backupEmail,
-      formData.backupPhone,
-      formData.teamName,
-      formData.themeName,
-      formData.member1,
-      formData.member2,
-      formData.member3,
-      formData.couponCode,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    );
-    if (result.success) {
-      await Helper.sendRegistrationEmail(
-        formData.email,
-        formData.leaderName,
-        formData.teamName,
-        formData.themeName
-      );
-      const updateResult = await queries.updateCoupon(formData.couponCode)
-      result.update_success = updateResult.success
-      result.couponUsed = updateResult.couponId
-      result.availability = updateResult.availability
-      result.updated_mssg = updateResult.message
-
-      return res.status(200).json(result);
-    } else {
-      return res.json(result);
-    }
-  } catch (e) {
-    console.error("Error in /register:", e);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
-  }
-});
 app.post("/comment", async (req, res) => {
   const { user_id, user_name, content, timestamp } = req.body;
 
@@ -406,9 +357,15 @@ app.get("/subcomments/:id/likes-dislikes", async (req, res) => {
 app.post("/payment/create-order", async (req, res) => {
   try {
     const { formData } = req.body;
-    const result = await queries.getAmount(formData.couponCode)
+    const result = await queries.couponsValidation(formData.couponCode)
+    if (result.dbError === true) {
+      res.status(200).send({
+        success: false, message: "Database is offline",
+      });
+      return;
+    }
     const paymentDetails = {
-      amount: result.amount,
+      amount: (result.amount || 2) * 100,
       currency: "INR",
       receipt: "receipt#1",
       notes: formData
@@ -427,7 +384,6 @@ app.post("/payment/create-order", async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-let verified = false;
 app.post("/payment/verify-order", async (req, res) => {
   try {
     const razorpay = new Razorpay({
@@ -447,52 +403,60 @@ app.post("/payment/verify-order", async (req, res) => {
       secret
     );
     if (isValidSignature) {
-      verified = true
+      const uuid = generateShortUUID();
+      console.log(uuid);
+      let result = await queries.Register(
+        uuid,
+        formData.leaderName,
+        formData.collegeName,
+        formData.email,
+        formData.phone,
+        formData.backupEmail,
+        formData.backupPhone,
+        formData.teamName,
+        formData.themeName,
+        formData.member1,
+        formData.member2,
+        formData.member3,
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        formData.couponCode
+      );
+      if (result.success) {
+        const mail_res = await Helper.sendRegistrationEmail(
+          formData.email,
+          formData.leaderName,
+          formData.teamName,
+          formData.themeName
+        );
+        console.log(mail_res)
+        result.verified = true
+        console.log(result)
+      }
+      res.status(200).json({success: true, teamId: uuid});
     }
     else {
-
-      verified = false
-
-    }
-    const uuid = generateShortUUID();
-    console.log(uuid);
-
-    let result = await queries.Register(
-      uuid,
-      formData.leaderName,
-      formData.collegeName,
-      formData.email,
-      formData.phone,
-      formData.backupEmail,
-      formData.backupPhone,
-      formData.teamName,
-      formData.themeName,
-      formData.member1,
-      formData.member2,
-      formData.member3,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
-    );
-    if (result.success) {
-      const mail_res = await Helper.sendRegistrationEmail(
-        formData.email,
-        formData.leaderName,
-        formData.teamName,
-        formData.themeName
-      );
-      console.log(mail_res)
-      result.verified = true
-      console.log(result)
-      return res.status(200).json(result);
-    } else {
-      return res.json(result);
+      res.status(200).json({ success: false });
     }
   } catch (error) {
     console.error("Payment verification Error:", error);
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
+// ticket
+app.get("/ticket/:ticketid", async (req, res) => {
+  try {
+    const tickerId = req.params.ticketid;
+    const resDb = await queries.getTicket(tickerId);
+    res.status(200).send(resDb);
+  } catch (error) {
+    console.error("Payment verification Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+})
+
 const sessionIds = [];
 app.post("/admin/login", (req, res) => {
   try {

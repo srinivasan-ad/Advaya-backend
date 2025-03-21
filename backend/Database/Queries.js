@@ -39,7 +39,7 @@ class Queries {
     const client = await db.getClient();
     if (!client) {
       console.log(chalk.red("DB connection failed"));
-      return { success: false , message : "db is not connected" };
+      return { success: false , message : "db is not connected", dbError: true };
     }
     try {
       await client.query("BEGIN");
@@ -48,39 +48,17 @@ class Queries {
       const res = await client.query(queryText, [couponCode]);
 
       if (!(res.rowCount > 0)){
-        return {success: false, message: "Invalid coupon code"};
+        return { success: false, message: "Invalid coupon code", dbError: false, amount: 2};
       }
 
       if (res.rows[0].availability <= 0){
-        return {success: false, message: "coupon has expired"};
+        return { success: true, message: "coupon has expired",expired: true, dbError: false, amount: 2};
       }
      console.log(res.rows[0].availability)
     console.log(res.rows[0].id)
       await client.query("COMMIT");
-      return {success: true, message: "coupon is valid !" , couponUsed : res.rows[0].id , amount : res.rows[0].amount};
-    } catch (e) {
-      await client.query("ROLLBACK");
-      console.log(chalk.red("Error applying coupon code"), e);
-      throw e;
-    } finally {
-      client.release();
-      console.log(chalk.yellowBright("Client released"));
-    }
-  }
-  async getAmount(couponCode)
-  {
-    const client = await db.getClient();
-    if (!client) {
-      console.log(chalk.red("DB connection failed"));
-      return { success: false , message : "db is not connected" };
-    }
-    try {
-      await client.query("BEGIN");
-
-      const queryText = "SELECT * FROM coupons where couponCode = $1;";
-      const res = await client.query(queryText, [couponCode]);
-      await client.query("COMMIT");
-      return {success: true, message: "Amount recieved from db !" , couponUsed : res.rows[0].id , amount : res.rows[0].amount};
+      return { success: true, message: "coupon is valid !", expired: false, remainingCount: res.rows[0].availability
+        , couponUsed: res.rows[0].id, dbError: false, amount : res.rows[0].amount};
     } catch (e) {
       await client.query("ROLLBACK");
       console.log(chalk.red("Error applying coupon code"), e);
@@ -154,7 +132,8 @@ class Queries {
     member3,
     razorpay_order_id,
     razorpay_payment_id,
-    razorpay_signature
+    razorpay_signature,
+    couponCode
   ) {
     const client = await db.getClient();
  
@@ -180,15 +159,19 @@ if(client)
       const theme_id = themeRes.rows[0].id;
 
       const teamRes = await client.query(
-        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING uuid`,
+        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature,
+        theme_name)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING uuid`,
         [
           uuid, leader, college, email, phone, backup_email, backup_phone,
           team_name, theme_id, member1, member2, member3,
-          razorpay_order_id, razorpay_payment_id, razorpay_signature
+          razorpay_order_id, razorpay_payment_id, razorpay_signature, theme_name
         ]
       );
-
+      if (couponCode) {
+        const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE id = $1;";
+        const updateRes = await client.query(updateQuery, couponCode);
+      }
       await client.query("COMMIT");
       return { success: true, message: "Team registered successfully", teamId: teamRes.rows[0].uuid };
     } catch (e) {
@@ -206,64 +189,31 @@ if(client)
     }
   }}
 
-  async  Register2(
-    uuid,
-    leader,
-    college,
-    email,
-    phone,
-    backup_email,
-    backup_phone,
-    team_name,
-    theme_name,
-    member1,
-    member2,
-    member3,
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature
-  ) {
+  async getTicket(teamId) {
     const client = await db.getClient();
-  
-    if (!client) {
-      console.log(chalk.red("DB connection failed for Register2 function."));
-      return { success: false };
-    }
-  
     try {
       await client.query("BEGIN");
-  
-      const themeRes = await client.query(
-        "SELECT id FROM themes WHERE name = $1",
-        [theme_name]
+      const result = await client.query(
+        `SELECT * FROM teams WHERE uuid = $1::varchar`,
+        [teamId]
       );
-  
-      if (!themeRes.rowCount) {
-        await client.query("ROLLBACK");
-        return { success: false };
-      }
-  
-      const theme_id = themeRes.rows[0].id;
-  
-      await client.query(
-        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-        [
-          uuid, leader, college, email, phone, backup_email, backup_phone,
-          team_name, theme_id, member1, member2, member3,
-          razorpay_order_id, razorpay_payment_id, razorpay_signature
-        ]
-      );
-  
       await client.query("COMMIT");
-      return { success: true };
-    } catch (error) {
+      if (result.rows.length === 0) {
+        return {
+          sucess: false,
+          ticket: null,
+        };
+      }
+      return {
+        sucess: true,
+        comment: result.rows[0],
+      };
+    } catch (e) {
       await client.query("ROLLBACK");
-      console.log(chalk.red("Error in Register2 function:"), error);
-      return { success: false };
+      console.error("Error in CreateComment:", e);
+      return { success: false, message: "Error creating comment" };
     } finally {
       client.release();
-      console.log(chalk.yellowBright("Client released"));
     }
   }
   
