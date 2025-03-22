@@ -69,7 +69,7 @@ class Helper {
         <title>Thank You for Registering - ADVAYA HACKATHON</title>
         <style>
           body {line-height: 1.4; color: #3a3a3a; margin: 0; padding: 0; background-color: #ffe1db; font-family: 'Arial', sans-serif;}
-          .logo_container {display: flex; justify-content: center; align-items: center; padding: 15px 20px; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
+          .logo_container {display: flex; justify-content: center; align-items: center; padding: 15px 20px; padding-left : 20px ; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
           .img_logo {width: 50%; height: auto; margin: 5px; object-fit: contain;}
           h1, h2, p {margin: 10px 0; padding: 0; text-align: center;}
           h1 {font-size: 28px; text-transform: uppercase;}
@@ -104,17 +104,19 @@ class Helper {
                 <div class="Team_info">
                     <p>TEAM NAME: <b>${teamName}</b></p>
                     <p>TEAM MEMBERS:</p>
-                    <ul>
-                        <li>${member1}</li>
-                        <li>${member2}</li>
-                        <li>${member3}</li>
-                    </ul>
+                  <ul>
+                 ${member1 ? `<li>${member1}</li>` : ''}
+                ${member2 ? `<li>${member2}</li>` : ''}
+                ${member3 ? `<li>${member3}</li>` : ''}
+                 </ul>
+
                 </div>
                 <p>Have fun, give it your best, and enjoy the experience. Good luck! 🚀</p>
                 <div class="date-highlight">
                     Mark your calendars, see you on <b>April 11th, 2025</b>
                 </div>
-                <a href=""https://advaya.bgscet.ac.in" class="button">Go to Website</a>
+                <br>
+                <a href="https://advaya.bgscet.ac.in" class="button">Go to Website</a>
             </div>
             <div class="footer">
                 <p>You will receive another confirmation via WhatsApp, after which a QR code will be sent. Please present this QR code on the day of the hackathon to confirm your registration.</p>
@@ -131,6 +133,14 @@ class Helper {
       subject: "Registration Successful",
       text: `Hello ${leaderName},\n\nYour registration was successful. Welcome aboard!\n\nBest Regards,\nHackathon Team`,
       html: emailHTML,
+      attachments: [
+        {
+          filename: 'logo.png',
+          path: `${__dirname}/logomoment yes.png`
+          , 
+          cid: 'logo_cid' 
+        }
+      ]
     };
 
     try {

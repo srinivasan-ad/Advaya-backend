@@ -20,7 +20,10 @@ async function retryFailedEmails() {
             emailData.toEmail,
             emailData.leaderName,
             emailData.teamName,
-            emailData.themeName
+            emailData.themeName,
+            emailData.member1,
+            emailData.member2,
+            emailData.member3
         );
 
         if (!success) {

@@ -34,7 +34,7 @@ class Queries {
       return null;
     }
   }
-
+  
   async couponsValidation(couponCode){
     const client = await db.getClient();
     if (!client) {

@@ -99,33 +99,23 @@ app.post("/template", async(req,res) =>
 })
 app.post("/whatsapp", async (req, res) => {
   console.log("Received request body:", req.body); // Debug incoming data
-const uuid = 123
-  // const { teamLeadernumber, teamLeader, teamName, member1, member2, member3, themeName, uuid  } = req.body;
 
-  // if (!teamLeadernumber || !uuid) {
-  //   console.error("Missing required parameters");
-  //   return res.status(400).send("Missing required fields");
-  // }
+  const { ButtonPayload, From, Body } = req.body;
 
+  if (!ButtonPayload) {
+    console.error("UUID missing from payload.");
+    return res.status(400).send("UUID missing.");
+  }
+
+  const uuid = ButtonPayload; // Extract UUID
+  console.log("Extracted UUID:", uuid);
+  
   try {
     // Generate QR Code
     const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
     const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
 
-    // Send WhatsApp message
-    // const createMessage = await twilloWhatsapp.createMessage(
-    //   teamLeadernumber,
-    //   teamLeader,
-    //   teamName,
-    //   member1,
-    //   member2,
-    //   member3,
-    //   themeName,
-    //   uuid
-    // );
-
-    // console.log("Message Sent Status:", createMessage);
-
+  
     // Send Response
     const response =  twilloWhatsapp.response.message();
     response.body("QR Code for your ticket:");
@@ -572,13 +562,13 @@ app.post("/payment/verify-order", async (req, res) => {
       );
       console.log(mail_res)
       const createMessage = await twilloWhatsapp.createMessage(
-        teamLeadernumber,
-        teamLeader,
-        teamName,
-        member1,
-        member2,
-        member3,
-        themeName,
+        formData.phone,
+        formData.leaderName,
+        formData.teamName,
+        formData.member1,
+        formData.member2,
+        formData.member3,
+        formData.themeName,
         uuid
       );
   
@@ -693,23 +683,6 @@ app.post("/admin/approve/ticket/:ticketid", (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error", error });
   }
 });
-app.post("/whatsapp" , async(req , res) => {
-  const {teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid} = req.body
-  const createMessage = await twilloWhatsapp.createMessage(teamLeadernumber,teamLeader,teamName,member1,member2,member3,themeName,uuid)
-  console.log(createMessage)
-  const phone_no = req.body.WaId; 
-  const message = req.body.Body;
-  console.log(`Received message: "${message}"`);
-  console.log(`Phone number: "${phone_no}"`);
-
-  const response = twilloWhatsapp.response.message()
-  response.body("qr code");
-  const img_src = "https"
-  response.media(img_src);
-
-  res.set('Content-Type', 'text/xml'); 
-  res.send(response.toString()); 
-})
 app.listen(process.env.PORT, () => {
   console.log(`Server started at http://localhost:${process.env.PORT}`);
 });

@@ -20,7 +20,7 @@ async function retryFailedEntries() {
   let newFailedEntries = [];
   console.log("Retrying :)");
   for (const data of failedEntries) {
-    const response = await queries.Register2(
+    const response = await queries.Register(
       data.uuid,
       data.leader,
       data.college,
