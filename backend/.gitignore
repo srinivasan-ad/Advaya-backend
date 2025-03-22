@@ -3,3 +3,8 @@ commands.sh
 .dist
 .env
 db.sql
+Microservice/data2.json
+Database/data.json
+Microservice/public/qrcodes/
+
+
