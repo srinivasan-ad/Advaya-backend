@@ -119,6 +119,28 @@ app.post('/register', async (req, res) => {
           }
         });
       });
+        const mail_res = await Helper.sendRegistrationEmail(
+        email,
+        leaderName,
+        teamName,
+        themeName,
+        member1,
+        member2,
+        member3
+      );
+      console.log(mail_res)
+      const createMessage = await twilloWhatsapp.createMessage(
+        phone,
+        leaderName,
+        teamName,
+        member1,
+        member2,
+        member3,
+        themeName,
+        uuid
+      );
+  
+      console.log("Message Sent Status:", createMessage);
       return res.status(200).json(result);
     } else {
       return res.status(400).json(result);
@@ -170,37 +192,34 @@ app.post('/register', async (req, res) => {
   
 
 // })
-// app.post("/whatsapp", async (req, res) => {
-//   console.log("Received request body:", req.body); // Debug incoming data
+app.post("/whatsapp", async (req, res) => {
+  console.log("Received request body:", req.body); 
 
-//   const { ButtonPayload, From, Body } = req.body;
+  const { ButtonPayload, From, Body } = req.body;
 
-//   if (!ButtonPayload) {
-//     console.error("UUID missing from payload.");
-//     return res.status(400).send("UUID missing.");
-//   }
+  if (!ButtonPayload) {
+    console.error("UUID missing from payload.");
+    return res.status(400).send("UUID missing.");
+  }
 
-//   const uuid = ButtonPayload; // Extract UUID
-//   console.log("Extracted UUID:", uuid);
+  const uuid = 123; 
+  console.log("Extracted UUID:", uuid);
   
-//   try {
-//     // Generate QR Code
-//     const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
-//     const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
+  try {
+    const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
+    const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
 
-  
-//     // Send Response
-//     const response =  twilloWhatsapp.response.message();
-//     response.body("QR Code for your ticket:");
-//     response.media(qrPublicUrl);
+    const response =  twilloWhatsapp.response.message();
+    response.body("QR Code for your ticket:");
+    response.media(qrPublicUrl);
 
-//     res.set("Content-Type", "text/xml");
-//     res.send(response.toString());
-//   } catch (error) {
-//     console.error("Error sending WhatsApp message:", error);
-//     res.status(500).send("Failed to send WhatsApp message");
-//   }
-// });
+    res.set("Content-Type", "text/xml");
+    res.send(response.toString());
+  } catch (error) {
+    console.error("Error sending WhatsApp message:", error);
+    res.status(500).send("Failed to send WhatsApp message");
+  }
+});
 
 
 // app.post("/coupon", async (req,res) =>{ 
