@@ -31,6 +31,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SECRET))
 app.use("/qrcodes", express.static(path.join(__dirname, "Microservice/public/qrcodes")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
