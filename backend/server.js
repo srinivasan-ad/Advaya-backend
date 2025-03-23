@@ -34,7 +34,7 @@ app.use("/qrcodes", express.static(path.join(__dirname, "Microservice/public/qrc
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://advaya.bgscet.ac.in",
     credentials: true
   })
 );
@@ -73,7 +73,7 @@ app.post('/register', async (req, res) => {
       member1,
       member2,
       member3,
-      utrNumber,  // This was renamed from utrId to match frontend
+      utrNumber,  
     } = req.body;
 
     if (!leaderName || !collegeName || !email || !phone || !teamName || !themeName || !utrNumber) {
