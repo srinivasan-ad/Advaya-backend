@@ -130,64 +130,69 @@ class Queries {
     member1,
     member2,
     member3,
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    couponCode
+    utrId
   ) {
     const client = await db.getClient();
- 
+  
     if (!client) {
       console.log(chalk.red("DB connection failed for Register function."));
-        saveToFile({
-        uuid, leader, college, email, phone, backup_email, backup_phone,
-        team_name, theme_name, member1, member2, member3,
-        razorpay_order_id, razorpay_payment_id, razorpay_signature
-      });
-      return { success: true, message:  "Team registered successfully",teamId : uuid };
-    }
-if(client)
-{
-
-    try {
-      await client.query("BEGIN");
-
-      const themeRes = await client.query("SELECT id FROM themes WHERE name = $1", [theme_name]);
-
-
-
-      const theme_id = themeRes.rows[0].id;
-
-      const teamRes = await client.query(
-        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, team_name, theme_id, member1, member2, member3, razorpay_order_id, razorpay_payment_id, razorpay_signature,
-        theme_name)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING uuid`,
-        [
-          uuid, leader, college, email, phone, backup_email, backup_phone,
-          team_name, theme_id, member1, member2, member3,
-          razorpay_order_id, razorpay_payment_id, razorpay_signature, theme_name
-        ]
-      );
-      if (couponCode) {
-        const updateQuery = "UPDATE coupons SET availability = availability - 1 WHERE id = $1;";
-        const updateRes = await client.query(updateQuery, couponCode);
-      }
-      await client.query("COMMIT");
-      return { success: true, message: "Team registered successfully", teamId: teamRes.rows[0].uuid };
-    } catch (e) {
-      await client.query("ROLLBACK");
-      console.log(chalk.red("Error in Register function:"), e);
       saveToFile({
         uuid, leader, college, email, phone, backup_email, backup_phone,
-        team_name, theme_name, member1, member2, member3,
-        razorpay_order_id, razorpay_payment_id, razorpay_signature
+        team_name, theme_name, member1, member2, member3, utrId
       });
-      return { success: true, message:  "Team registered successfully",teamId  :uuid };
+      return { success: false, message: "DB connection failed, data saved locally", teamId: uuid };
+    }
+  
+    try {
+      await client.query("BEGIN");
+  
+      const themeRes = await client.query("SELECT id FROM themes WHERE name = $1", [theme_name]);
+  
+      if (themeRes.rows.length === 0) {
+        throw new Error(`Theme '${theme_name}' not found`);
+      }
+  
+      const theme_id = themeRes.rows[0].id;
+  
+      const teamRes = await client.query(
+        `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, 
+                            team_name, theme_id, member1, member2, member3, utr_id, theme_name)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         RETURNING uuid;`,
+        [
+          uuid, leader, college, email, phone, backup_email, backup_phone,
+          team_name, theme_id, member1, member2, member3, utrId, theme_name
+        ]
+      );
+  
+      await client.query("COMMIT");
+  
+      return { success: true, message: "Team registered successfully", teamId: teamRes.rows[0].uuid , utr_exists: false};
+  
+    } catch (e) {
+      await client.query("ROLLBACK");
+  
+      console.log(chalk.red("Error in Register function:"), e.code , e.detail);
+  
+      if (e.code === "23505" && e.detail.includes("utr_id")) {
+        console.log(chalk.yellow(`Duplicate UTR ID: ${utrId} - Registration rejected.`));
+        return { success: false, message: "UTR ID already exists", utr_exists: true };
+      }
+  
+      saveToFile({
+        uuid, leader, college, email, phone, backup_email, backup_phone,
+        team_name, theme_name, member1, member2, member3, utrId
+      });
+  
+      return { success: false, message: "Error inserting into database, data saved locally", teamId: uuid };
+  
     } finally {
       client.release();
       console.log(chalk.yellowBright("Client released"));
     }
-  }}
+  }
+  
+  
 
   async getTicket(teamId) {
     const client = await db.getClient();

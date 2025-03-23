@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const fileUpload = require("express-fileupload");
 require('./Database/retry')
 require('./Microservice/retry_mail')
 const chalk = require("chalk");
@@ -25,7 +26,7 @@ const helper = new Helper();
 
 const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
 const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
-
+app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.SECRET))
@@ -57,147 +58,170 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
-app.post('/mail', async (req, res) => {
-  console.log('Received Status Callback:', req.body);
-  const mail_res = await Helper.sendRegistrationEmail(
-"vilaspgowda1000@gmail.com",
-    "Vilas C P",
-    "Dark Mode",
-   "Tourism and travel",
-   "member1",
-   "member2",
-   "member3"
-  );
-  console.log(mail_res)
-  res.sendStatus(200);
-});
-
-app.post("/template", async(req,res) => 
-{
-
-  const { teamLeadernumber, teamLeader, teamName, member1, member2, member3, themeName, uuid  } = req.body;
+app.post('/register', async (req, res) => {
   try {
-    const createMessage = await twilloWhatsapp.createMessage(
-      teamLeadernumber,
-      teamLeader,
+    console.log("Raw Body:", req.body);
+    const {
+      leaderName,
+      collegeName,
+      email,
+      phone,
+      backupEmail,
+      backupPhone,
       teamName,
+      themeName,
       member1,
       member2,
       member3,
-      themeName,
-      uuid
-    );
+      utrNumber,  // This was renamed from utrId to match frontend
+    } = req.body;
 
-    console.log("Message Sent Status:", createMessage);
-  }
-  catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    res.status(500).send("Failed to send WhatsApp message");
-  }
-  
-
-})
-app.post("/whatsapp", async (req, res) => {
-  console.log("Received request body:", req.body); // Debug incoming data
-
-  const { ButtonPayload, From, Body } = req.body;
-
-  if (!ButtonPayload) {
-    console.error("UUID missing from payload.");
-    return res.status(400).send("UUID missing.");
-  }
-
-  const uuid = ButtonPayload; // Extract UUID
-  console.log("Extracted UUID:", uuid);
-  
-  try {
-    // Generate QR Code
-    const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
-    const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
-
-  
-    // Send Response
-    const response =  twilloWhatsapp.response.message();
-    response.body("QR Code for your ticket:");
-    response.media(qrPublicUrl);
-
-    res.set("Content-Type", "text/xml");
-    res.send(response.toString());
-  } catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    res.status(500).send("Failed to send WhatsApp message");
-  }
-});
-
-
-app.post("/coupon", async (req,res) =>{ 
-  const {couponCode} = req.body
-  try{
-    const result = await queries.couponsValidation(couponCode);
-    if (!result.success) {
-      return res.status(400).json(result)
+    if (!leaderName || !collegeName || !email || !phone || !teamName || !themeName || !utrNumber) {
+      return res.status(400).json({ success: false, message: "Missing required form fields" });
     }
-    if(result.success)
-    {  
-    return res.status(200).json(result)
-  }
-  }
-  catch (e) {
-    return res.status(500).json({ success: false, message: "internal server error" })
 
-  }
-});
+    if (!req.files || !req.files.paymentProof) {
+      return res.status(400).json({ success: false, message: "No payment proof uploaded" });
+    }
 
-//change coupon to check validity api then use coupon api to toggle payment in last check the coupon code in form data and secrement it 
-app.post("/register", async (req, res) => {
-  const {
-    formData
-  } = req.body;
-  try {
+    const paymentProof = req.files.paymentProof;
     const uuid = generateShortUUID();
-    console.log(uuid);
+
     const result = await queries.Register(
       uuid,
-      formData.leaderName,
-      formData.collegeName,
-      formData.email,
-      formData.phone,
-      formData.backupEmail,
-      formData.backupPhone,
-      formData.teamName,
-      formData.themeName,
-      formData.member1,
-      formData.member2,
-      formData.member3,
-      formData.couponCode,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature
+      leaderName,
+      collegeName,
+      email,
+      phone,
+      backupEmail,
+      backupPhone,
+      teamName,
+      themeName,
+      member1,
+      member2,
+      member3,
+      utrNumber
     );
-    if (result.success) {
-      await Helper.sendRegistrationEmail(
-        formData.email,
-        formData.leaderName,
-        formData.teamName,
-        formData.themeName
-      );
-      const updateResult = await queries.updateCoupon(formData.couponCode)
-      result.update_success = updateResult.success
-      result.couponUsed = updateResult.couponId
-      result.availability = updateResult.availability
-      result.updated_mssg = updateResult.message
 
+    if (result.success) {
+      console.log("Registration Successful:", result);
+      const uploadPath = path.join(__dirname, "uploads", `${uuid}_${paymentProof.name}`);
+
+      await new Promise((resolve, reject) => {
+        paymentProof.mv(uploadPath, (err) => {
+          if (err) {
+            console.error("File Upload Error:", err);
+            reject(err);
+          } else {
+            console.log("File saved at:", uploadPath);
+            resolve();
+          }
+        });
+      });
       return res.status(200).json(result);
     } else {
-      return res.json(result);
+      return res.status(400).json(result);
     }
-  } catch (e) {
-    console.error("Error in /register:", e);
-    return res
-      .status(500)
-      .json({ success: false, message: "Internal server error" });
+
+  } catch (error) {
+    console.error("Registration Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+
+// app.post('/mail', async (req, res) => {
+//   console.log('Received Status Callback:', req.body);
+//   const mail_res = await Helper.sendRegistrationEmail(
+// "vilaspgowda1000@gmail.com",
+//     "Vilas C P",
+//     "Dark Mode",
+//    "Tourism and travel",
+//    "member1",
+//    "member2",
+//    "member3"
+//   );
+//   console.log(mail_res)
+//   res.sendStatus(200);
+// });
+
+// app.post("/template", async(req,res) => 
+// {
+
+//   const { teamLeadernumber, teamLeader, teamName, member1, member2, member3, themeName, uuid  } = req.body;
+//   try {
+//     const createMessage = await twilloWhatsapp.createMessage(
+//       teamLeadernumber,
+//       teamLeader,
+//       teamName,
+//       member1,
+//       member2,
+//       member3,
+//       themeName,
+//       uuid
+//     );
+
+//     console.log("Message Sent Status:", createMessage);
+//   }
+//   catch (error) {
+//     console.error("Error sending WhatsApp message:", error);
+//     res.status(500).send("Failed to send WhatsApp message");
+//   }
+  
+
+// })
+// app.post("/whatsapp", async (req, res) => {
+//   console.log("Received request body:", req.body); // Debug incoming data
+
+//   const { ButtonPayload, From, Body } = req.body;
+
+//   if (!ButtonPayload) {
+//     console.error("UUID missing from payload.");
+//     return res.status(400).send("UUID missing.");
+//   }
+
+//   const uuid = ButtonPayload; // Extract UUID
+//   console.log("Extracted UUID:", uuid);
+  
+//   try {
+//     // Generate QR Code
+//     const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
+//     const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
+
+  
+//     // Send Response
+//     const response =  twilloWhatsapp.response.message();
+//     response.body("QR Code for your ticket:");
+//     response.media(qrPublicUrl);
+
+//     res.set("Content-Type", "text/xml");
+//     res.send(response.toString());
+//   } catch (error) {
+//     console.error("Error sending WhatsApp message:", error);
+//     res.status(500).send("Failed to send WhatsApp message");
+//   }
+// });
+
+
+// app.post("/coupon", async (req,res) =>{ 
+//   const {couponCode} = req.body
+//   try{
+//     const result = await queries.couponsValidation(couponCode);
+//     if (!result.success) {
+//       return res.status(400).json(result)
+//     }
+//     if(result.success)
+//     {  
+//     return res.status(200).json(result)
+//   }
+//   }
+//   catch (e) {
+//     return res.status(500).json({ success: false, message: "internal server error" })
+
+//   }
+// });
+
+//change coupon to check validity api then use coupon api to toggle payment in last check the coupon code in form data and secrement it 
+
 app.post("/comment", async (req, res) => {
   const { user_id, user_name, content, timestamp } = req.body;
 
@@ -551,28 +575,28 @@ app.post("/payment/verify-order", async (req, res) => {
       razorpay_signature
     );
     if (result.success) {
-      const mail_res = await Helper.sendRegistrationEmail(
-        formData.email,
-        formData.leaderName,
-        formData.teamName,
-        formData.themeName,
-        formData.member1,
-        formData.member2,
-        formData.member3
-      );
-      console.log(mail_res)
-      const createMessage = await twilloWhatsapp.createMessage(
-        formData.phone,
-        formData.leaderName,
-        formData.teamName,
-        formData.member1,
-        formData.member2,
-        formData.member3,
-        formData.themeName,
-        uuid
-      );
+      // const mail_res = await Helper.sendRegistrationEmail(
+      //   formData.email,
+      //   formData.leaderName,
+      //   formData.teamName,
+      //   formData.themeName,
+      //   formData.member1,
+      //   formData.member2,
+      //   formData.member3
+      // );
+      // console.log(mail_res)
+      // const createMessage = await twilloWhatsapp.createMessage(
+      //   formData.phone,
+      //   formData.leaderName,
+      //   formData.teamName,
+      //   formData.member1,
+      //   formData.member2,
+      //   formData.member3,
+      //   formData.themeName,
+      //   uuid
+      // );
   
-      console.log("Message Sent Status:", createMessage);
+      // console.log("Message Sent Status:", createMessage);
       result.verified = true
       console.log(result)
       return res.status(200).json(result);

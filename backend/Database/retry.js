@@ -33,9 +33,8 @@ async function retryFailedEntries() {
       data.member1,
       data.member2,
       data.member3,
-      data.razorpay_order_id,
-      data.razorpay_payment_id,
-      data.razorpay_signature
+      data.utrId
+
     );
 
     if (!response.success) {
