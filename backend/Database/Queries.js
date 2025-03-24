@@ -130,7 +130,8 @@ class Queries {
     member1,
     member2,
     member3,
-    utrId
+    utrId,
+    url
   ) {
     const client = await db.getClient();
   
@@ -138,7 +139,7 @@ class Queries {
       console.log(chalk.red("DB connection failed for Register function."));
       saveToFile({
         uuid, leader, college, email, phone, backup_email, backup_phone,
-        team_name, theme_name, member1, member2, member3, utrId
+        team_name, theme_name, member1, member2, member3, utrId, url
       });
       return { success: false, message: "DB connection failed, data saved locally", teamId: uuid };
     }
@@ -156,12 +157,12 @@ class Queries {
   
       const teamRes = await client.query(
         `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, 
-                            team_name, theme_id, member1, member2, member3, utr_id, theme_name)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                            team_name, theme_id, member1, member2, member3, utr_id, theme_name, url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          RETURNING uuid;`,
         [
           uuid, leader, college, email, phone, backup_email, backup_phone,
-          team_name, theme_id, member1, member2, member3, utrId, theme_name
+          team_name, theme_id, member1, member2, member3, utrId, theme_name, url
         ]
       );
   

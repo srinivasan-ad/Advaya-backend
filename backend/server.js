@@ -35,7 +35,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: "https://advaya.bgscet.ac.in",
+    origin: "http://localhost:3000",
     credentials: true
   })
 );
@@ -87,6 +87,8 @@ app.post('/register', async (req, res) => {
 
     const paymentProof = req.files.paymentProof;
     const uuid = generateShortUUID();
+    const temp = paymentProof.name.split(".");
+    const ext = temp[temp.length - 1];
 
     const result = await queries.Register(
       uuid,
@@ -101,12 +103,14 @@ app.post('/register', async (req, res) => {
       member1,
       member2,
       member3,
-      utrNumber
+      utrNumber,
+      `https://aserver.manojad.dev/uploads/${uuid}.${ext}`
     );
 
     if (result.success) {
       console.log("Registration Successful:", result);
-      const uploadPath = path.join(__dirname, "uploads", `${uuid}_${paymentProof.name}`);
+
+      const uploadPath = path.join(__dirname, "uploads", `${uuid}.${ext}`);
 
       await new Promise((resolve, reject) => {
         paymentProof.mv(uploadPath, (err) => {
@@ -129,18 +133,18 @@ app.post('/register', async (req, res) => {
         member3
       );
       console.log(mail_res)
-      const createMessage = await twilloWhatsapp.createMessage(
-        phone,
-        leaderName,
-        teamName,
-        member1,
-        member2,
-        member3,
-        themeName,
-        uuid
-      );
+      // const createMessage = await twilloWhatsapp.createMessage(
+      //   phone,
+      //   leaderName,
+      //   teamName,
+      //   member1,
+      //   member2,
+      //   member3,
+      //   themeName,
+      //   uuid
+      // );
   
-      console.log("Message Sent Status:", createMessage);
+      // console.log("Message Sent Status:", createMessage);
       return res.status(200).json(result);
     } else {
       return res.status(400).json(result);
