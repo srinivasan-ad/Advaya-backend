@@ -59,7 +59,7 @@ class Helper {
     },
   });
 
-  static async sendRegistrationEmail(toEmail, leaderName, teamName, themeName, member1, member2, member3, filePath, fileName) {
+  static async sendRegistrationEmail(toEmail, leaderName, teamName, themeName, problemStatement, member1, member2, member3, filePath, fileName) {
     const emailHTML = `
     <!DOCTYPE html>
     <html lang="en">
@@ -75,6 +75,7 @@ class Helper {
           h1 {font-size: 28px; text-transform: uppercase;}
           h2 {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 220%; text-transform: uppercase; letter-spacing: 1px;}
           .theme_moment {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 190%; text-transform: uppercase; letter-spacing: 1px;}
+          .problem_moment {font-family: 'League Gothic', sans-serif; font-weight: semi-bold; color: #bc3a41; font-size: 190%; text-transform: uppercase; letter-spacing: 1px;}
           .container {max-width: 700px; margin: 20px auto; padding: 20px; background-color: #fac2b2; border-radius: 10px; box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);}
           .header {text-align: center; padding: 20px 0; background-color: #f13f3e; color: white; font-size: 24px; font-weight: bold; border-radius: 10px 10px 0 0;}
           .content {padding: 25px; text-align: center; background-color: #ffe1db; border-radius: 10px;}
@@ -100,6 +101,9 @@ class Helper {
                 <p>Looking forward to seeing your ideas come to life as you collaborate, innovate, and build something great.</p>
                 <div class="Theme_name">
                     <h2 class="theme_moment">Theme: ${themeName}</h2>
+                </div>
+                 <div class="Theme_name">
+                    <h2 class="problem_moment">Theme: ${problemStatement}</h2>
                 </div>
                 <div class="Team_info">
                     <p>TEAM NAME: <b>${teamName}</b></p>

@@ -127,6 +127,7 @@ class Queries {
     backup_phone,
     team_name,
     theme_name,
+    problemStatement,
     member1,
     member2,
     member3,
@@ -139,7 +140,7 @@ class Queries {
       console.log(chalk.red("DB connection failed for Register function."));
       saveToFile({
         uuid, leader, college, email, phone, backup_email, backup_phone,
-        team_name, theme_name, member1, member2, member3, utrId, url
+        team_name, theme_name,problemStatement, member1, member2, member3, utrId, url
       });
       return { success: false, message: "DB connection failed, data saved locally", teamId: uuid };
     }
@@ -157,12 +158,12 @@ class Queries {
   
       const teamRes = await client.query(
         `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, 
-                            team_name, theme_id, member1, member2, member3, utr_id, theme_name, url)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                            team_name, theme_id, member1, member2, member3, utr_id, theme_name, problem_statement, url)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15 , $16)
          RETURNING uuid;`,
         [
           uuid, leader, college, email, phone, backup_email, backup_phone,
-          team_name, theme_id, member1, member2, member3, utrId, theme_name, url
+          team_name, theme_id, member1, member2, member3, utrId, theme_name, problemStatement, url
         ]
       );
   
@@ -182,7 +183,7 @@ class Queries {
   
       saveToFile({
         uuid, leader, college, email, phone, backup_email, backup_phone,
-        team_name, theme_name, member1, member2, member3, utrId
+        team_name, theme_name, problemStatement,member1, member2, member3, utrId
       });
   
       return { success: false, message: "Error inserting into database, data saved locally", teamId: uuid };
