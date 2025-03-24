@@ -128,7 +128,7 @@ class Helper {
     `;
 
     const mailOptions = {
-      from: process.env.ADMIN_EMAIL,
+      from: `Advaya Hackathon <${process.env.ADMIN_EMAIL}>`,
       to: toEmail,
       subject: "Registration Successful",
       text: `Hello ${leaderName},\n\nYour registration was successful. Welcome aboard!\n\nBest Regards,\nHackathon Team`,
