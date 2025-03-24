@@ -35,7 +35,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: "https://advaya.manojad.dev",
+    origin: "https://advaya.bgscet.ac.in",
     credentials: true
   })
 );
@@ -123,6 +123,10 @@ app.post('/register', async (req, res) => {
           }
         });
       });
+      const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
+      if (!file) {
+        return res.status(400).json(result);
+      }
         const mail_res = await Helper.sendRegistrationEmail(
         email,
         leaderName,
@@ -130,7 +134,9 @@ app.post('/register', async (req, res) => {
         themeName,
         member1,
         member2,
-        member3
+        member3,
+        file.filePath,
+        file.filename
       );
       console.log(mail_res)
       // const createMessage = await twilloWhatsapp.createMessage(

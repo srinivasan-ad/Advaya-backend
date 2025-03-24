@@ -92,7 +92,7 @@ async function generateQRFile(link, uuid) {
   try {
     await QRCode.toFile(filePath, link);
     console.log("QR Code saved successfully:", filePath);
-    return filePath;
+    return {filePath, filename};
   } catch (error) {
     console.error("Error generating QR Code:", error);
     return null;

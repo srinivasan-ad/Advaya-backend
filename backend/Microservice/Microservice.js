@@ -59,7 +59,7 @@ class Helper {
     },
   });
 
-  static async sendRegistrationEmail(toEmail, leaderName, teamName, themeName, member1, member2, member3) {
+  static async sendRegistrationEmail(toEmail, leaderName, teamName, themeName, member1, member2, member3, filePath, fileName) {
     const emailHTML = `
     <!DOCTYPE html>
     <html lang="en">
@@ -69,7 +69,7 @@ class Helper {
         <title>Thank You for Registering - ADVAYA HACKATHON</title>
         <style>
           body {line-height: 1.4; color: #3a3a3a; margin: 0; padding: 0; background-color: #ffe1db; font-family: 'Arial', sans-serif;}
-          .logo_container {display: flex; justify-content: center; align-items: center; padding: 15px 20px; padding-left : 20px ; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
+          .logo_container {display: flex; justify-content: space-around; align-items: center; padding: 15px 20px; padding-left : 20px ; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
           .img_logo {width: 50%; height: auto; margin: 5px; object-fit: contain;}
           h1, h2, p {margin: 10px 0; padding: 0; text-align: center;}
           h1 {font-size: 28px; text-transform: uppercase;}
@@ -118,6 +118,9 @@ class Helper {
                 <br>
                 <a href="https://advaya.bgscet.ac.in" class="button">Go to Website</a>
             </div>
+            <div class="logo_container">
+                <img src= cid:qr_cid class="img_logo">
+            </div>
             <div class="footer">
                 <p>You will receive another confirmation via WhatsApp, after which a QR code will be sent. Please present this QR code on the day of the hackathon to confirm your registration.</p>
                 <p>Don't forget to follow us for updates: <a href="https://instagram.com" target="_blank">Instagram</a></p>
@@ -139,6 +142,12 @@ class Helper {
           path: `${__dirname}/logomoment yes.png`
           , 
           cid: 'logo_cid' 
+        },
+        {
+          filename: fileName,
+          path: filePath
+          ,
+          cid: 'qr_cid'
         }
       ]
     };
