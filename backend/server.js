@@ -24,8 +24,8 @@ const queries = new Queries();
 const helper = new Helper();
 
 
-const ADMIN_COMMENT_PASS = `d@)cX$tv(M'/K&N8e3~n`;
-const ADMIN_PASS = `L%):Y@w4"^K8;9UH6Puqj2mXd#R+ZgW]kyxSD7bv5n<c_e}.s,`;
+const ADMIN_COMMENT_PASS = `Ld)2+Arcgz=Nh6ZDWaw$X&`;
+const ADMIN_PASS = `Ld)2+Arcgz=Nh6ZDWaw$X&`;
 app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
