@@ -67,25 +67,25 @@ class Helper {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Thank You for Registering - ADVAYA HACKATHON</title>
-        <style>
-          body {line-height: 1.4; color: #3a3a3a; margin: 0; padding: 0; background-color: #ffe1db; font-family: 'Arial', sans-serif;}
-          .logo_container {display: flex; justify-content: space-around; align-items: center; padding: 15px 20px; padding-left : 20px ; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
-          .img_logo {width: 50%; height: auto; margin: 5px; object-fit: contain;}
-          h1, h2, p {margin: 10px 0; padding: 0; text-align: center;}
-          h1 {font-size: 28px; text-transform: uppercase;}
-          h2 {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 220%; text-transform: uppercase; letter-spacing: 1px;}
-          .theme_moment {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 190%; text-transform: uppercase; letter-spacing: 1px;}
-          .problem_moment {font-family: 'League Gothic', sans-serif; font-weight: semi-bold; color: #bc3a41; font-size: 190%; text-transform: uppercase; letter-spacing: 1px;}
-          .container {max-width: 700px; margin: 20px auto; padding: 20px; background-color: #fac2b2; border-radius: 10px; box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);}
-          .header {text-align: center; padding: 20px 0; background-color: #f13f3e; color: white; font-size: 24px; font-weight: bold; border-radius: 10px 10px 0 0;}
-          .content {padding: 25px; text-align: center; background-color: #ffe1db; border-radius: 10px;}
-          .Team_info ul {list-style-type: none; padding: 0; margin-left: 20px;}
-          .Team_info li {background: #fac2b2; padding: 8px; margin: 5px 0; border-radius: 5px; font-weight: bold;}
-          .date-highlight {font-weight: bold; font-size: 20px; color: #bc3a41;}
-          .button {display: inline-block; padding: 12px 20px; background-color: #bc3a41; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; transition: 0.3s;}
-          .button:hover {background-color: #f13f3e; transform: scale(1.05);}
-          .footer {text-align: center; padding: 15px; font-size: 14px; color: #5b5b5b; background-color: #fac2b2; border-radius: 0 0 10px 10px;}
-        </style>
+          <style>
+        body {line-height: 1.4; color: #3a3a3a; margin: 0; padding: 0; background-color: #ffe1db; font-family: 'Arial', sans-serif;}
+        .logo_container {display: flex; justify-content: center; align-items: center; padding: 15px 20px; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
+        .img_logo {width: 50%; height: auto; margin: 5px; object-fit: contain; display: block;}
+        h1, h2, p {margin: 10px 0; padding: 0; text-align: center;}
+        h1 {font-size: 32px; text-transform: uppercase;}
+        h2 {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 28px; text-transform: uppercase; letter-spacing: 1px;}
+        .theme_moment {font-size: 26px;}
+        .problem_moment {font-size: 24px;}
+        .container {max-width: 700px; margin: 20px auto; padding: 20px; background-color: #fac2b2; border-radius: 10px; box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);}
+        .header {text-align: center; padding: 20px 0; background-color: #f13f3e; color: white; font-size: 24px; font-weight: bold; border-radius: 10px 10px 0 0;}
+        .content {padding: 25px; text-align: center; background-color: #ffe1db; border-radius: 10px;}
+        .Team_info ul {list-style-type: none; padding: 0; margin-left: 20px;}
+        .Team_info li {background: #fac2b2; padding: 8px; margin: 5px 0; border-radius: 5px; font-weight: bold;}
+        .date-highlight {font-weight: bold; font-size: 20px; color: #bc3a41;}
+        .button {display: inline-block; padding: 12px 20px; background-color: #bc3a41; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold; transition: 0.3s;}
+        .button:hover {background-color: #f13f3e; transform: scale(1.05);}
+        .footer {text-align: center; padding: 15px; font-size: 14px; color: #5b5b5b; background-color: #fac2b2; border-radius: 0 0 10px 10px;}
+    </style>
     </head>
     <body>
         <div class="container">
@@ -126,8 +126,8 @@ class Helper {
                 <img src= cid:qr_cid class="img_logo">
             </div>
             <div class="footer">
-                <p>You will receive another confirmation via WhatsApp, after which a QR code will be sent. Please present this QR code on the day of the hackathon to confirm your registration.</p>
-                <p>Don't forget to follow us for updates: <a href="https://instagram.com" target="_blank">Instagram</a></p>
+                <p>Please present this QR code on the day of the hackathon to confirm your registration.</p>
+                <p>Don't forget to follow us for updates: <a href="https://www.instagram.com/advaya_hackathon/?hl=en" target="_blank">Instagram</a></p>
             </div>
         </div>
     </body>

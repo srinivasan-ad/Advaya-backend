@@ -165,20 +165,27 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// app.post('/mail', async (req, res) => {
-//   console.log('Received Status Callback:', req.body);
-//   const mail_res = await Helper.sendRegistrationEmail(
-// "vilaspgowda1000@gmail.com",
-//     "Vilas C P",
-//     "Dark Mode",
-//    "Tourism and travel",
-//    "member1",
-//    "member2",
-//    "member3"
-//   );
-//   console.log(mail_res)
-//   res.sendStatus(200);
-// });
+app.post('/mail', async (req, res) => {
+  console.log('Received Status Callback:', req.body);
+  const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`,'ef2c2b');
+  if (!file) {
+    return res.status(400).json(result);
+  }
+    const mail_res = await Helper.sendRegistrationEmail(
+    "hackathontestingprog@gmail.com",
+    "Manoja",
+    "Light Mode",
+     "AI automation",
+    "Solving Workload on employees",
+    "Manoja",
+    "Vilas",
+    "Aditya",
+    file.filePath,
+    file.filename
+  );
+  console.log(mail_res)
+  res.sendStatus(200);
+});
 
 // app.post("/template", async(req,res) => 
 // {
