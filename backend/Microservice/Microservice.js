@@ -69,8 +69,8 @@ class Helper {
         <title>Thank You for Registering - ADVAYA HACKATHON</title>
           <style>
         body {line-height: 1.4; color: #3a3a3a; margin: 0; padding: 0; background-color: #ffe1db; font-family: 'Arial', sans-serif;}
-        .logo_container {display: flex; justify-content: center; align-items: center; padding: 15px 20px; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
-        .img_logo {width: 50%; height: auto; margin: 5px; object-fit: contain; display: block;}
+        .logo_container {display: block; padding: 15px 20px; background-color: #fac2b2; border-bottom: 3px solid #bc3a41;}
+        .img_logo {width: 200px; height: auto; display: block; margin: auto; object-fit: contain; display: block;}
         h1, h2, p {margin: 10px 0; padding: 0; text-align: center;}
         h1 {font-size: 32px; text-transform: uppercase;}
         h2 {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 28px; text-transform: uppercase; letter-spacing: 1px;}

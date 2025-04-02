@@ -172,7 +172,7 @@ app.post('/mail', async (req, res) => {
     return res.status(400).json(result);
   }
     const mail_res = await Helper.sendRegistrationEmail(
-    "hackathontestingprog@gmail.com",
+    "manojadkc2004@gmail.com",
     "Manoja",
     "Light Mode",
      "AI automation",
