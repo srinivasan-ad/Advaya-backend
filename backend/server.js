@@ -70,14 +70,14 @@ app.get("/validate/github/user/:username", async (req, res) => {
         message: 'Username exists',
       });
     } else {
-      res.status(404).send({
+      res.status(200).send({
         success: false,
         message: 'Username does not exists',
       });
     }
   } catch (error) {
     console.log(error);
-    res.status(404).send({
+    res.status(400).send({
       success: false,
       message: 'Server error',
       error
