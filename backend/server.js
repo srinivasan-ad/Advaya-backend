@@ -289,6 +289,7 @@ app.post('/mail', async (req, res) => {
   console.log(mail_res)
   res.sendStatus(200);
 });
+//sending update mail seperately api 
 app.post('/updatemail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
     const mail_res = await Helper.sendUpdateEmail(
