@@ -267,7 +267,7 @@ app.post('/register', async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
+//sending noraml mail seperately api
 app.post('/mail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
   const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`, 'ef2c2b');
