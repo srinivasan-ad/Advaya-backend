@@ -69,21 +69,23 @@ app.get("/validate/github/user/:username", async (req, res) => {
       },
     });
     const resJson = await response.json();
-    console.log(response.status, resJson);
     if (response.status === 200) {
       res.status(200).send({
         success: true,
         message: 'Username exists',
+        githubData: resJson,
       });
     } else if (response.status === 403) {
       res.status(403).send({
         success: false,
         message: resJson.message,
+        githubData: resJson,
       });
     } else {
       res.status(400).send({
         success: false,
         message: 'Username does not exists',
+        githubData: resJson,
       });
     }
   } catch (error) {
