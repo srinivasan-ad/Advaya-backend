@@ -65,7 +65,7 @@ app.get("/validate/github/user/:username", async (req, res) => {
     const username = req.params.username;
     const response = await fetch(`https://api.github.com/users/${username}`, {
       headers: {
-        Authorization: process.env.GITHUB_TOKEN,
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
     });
     const resJson = await response.json();
