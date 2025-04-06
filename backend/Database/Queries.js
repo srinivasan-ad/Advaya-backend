@@ -199,30 +199,49 @@ class Queries {
   async getTicket(teamId) {
     const client = await db.getClient();
     try {
-      await client.query("BEGIN");
       const result = await client.query(
-        `SELECT * FROM teams WHERE uuid = $1::varchar`,
+        `SELECT 
+          leader AS "leaderName",
+          college AS "collegeName",
+          email,
+          phone,
+          team_name AS "teamName",
+          theme_name AS "themeName",
+          problem_statement AS "problemStatement",
+          member1,
+          member2,
+          member3,
+           backup_email AS "backupEmail",
+            backup_phone AS "backupPhone",
+          github_username AS "githubUsername",
+          utr_id AS "utrNumber"
+        FROM teams
+        WHERE uuid = $1::varchar`,
         [teamId]
       );
-      await client.query("COMMIT");
-      if (result.rows.length === 0) {
-        return {
-          sucess: false,
-          ticket: null,
-        };
-      }
+      
+    if (result.rows.length === 0) {
       return {
-        sucess: true,
-        comment: result.rows[0],
+        success: false,
+        ticket: null,
       };
-    } catch (e) {
-      await client.query("ROLLBACK");
-      console.error("Error in CreateComment:", e);
-      return { success: false, message: "Error creating comment" };
-    } finally {
-      client.release();
     }
+
+    const row = result.rows[0];
+
+   
+    return {
+      success: true,
+      ticket: row,
+    };
+  } catch (e) {
+    console.error("Error in getTickettest:", e);
+    return { success: false, message: "Error retrieving ticket" };
+  } finally {
+    client.release();
   }
+}
+
   
   async AddComment(user_id, user_name, content, timestamp) {
     const client = await db.getClient();
@@ -1011,7 +1030,7 @@ ORDER BY s.created_at ASC;
       client.release();
     }
   }
-  async UpdateTeamDetails(uuid, leader, teamName, email, phone_no, college, member1, member2, member3, utr, github_username, theme_name,  problemStatement) {
+  async UpdateTeamDetails(uuid, leader, teamName, email, phone_no, college, member1, member2, member3, utr, github_username, theme_name,  problemStatement , backupEmail,backupPhone) {
     const client = await db.getClient();
     try {
       const selectThemeQuery = "SELECT id FROM themes WHERE name = $1";
@@ -1023,7 +1042,7 @@ ORDER BY s.created_at ASC;
   
       const theme_id = themeResult.rows[0].id;
       const updateQuery = `
-        UPDATE test_teams 
+        UPDATE teams 
         SET 
           leader = $1,
           team_name = $2,
@@ -1037,8 +1056,10 @@ ORDER BY s.created_at ASC;
           email = $10,
           theme_id = $11,
           theme_name = $12,
-          problem_statement = $13
-        WHERE uuid = $14
+          problem_statement = $13,
+          backup_email = $14,
+          backup_phone = $15
+        WHERE uuid = $16
         RETURNING id;
       `;
       const values = [
@@ -1055,6 +1076,8 @@ ORDER BY s.created_at ASC;
         theme_id,
         theme_name,
         problemStatement,
+        backupEmail,
+        backupPhone,
         uuid,
       ];
   
@@ -1071,6 +1094,51 @@ ORDER BY s.created_at ASC;
         success: false,
         message: "Error updating team details",
       };
+    } finally {
+      client.release();
+    }
+  }
+  async getTickettest(teamId) {
+    const client = await db.getClient();
+    try {
+        const result = await client.query(
+          `SELECT 
+            leader AS "leaderName",
+            college AS "collegeName",
+            email,
+            phone,
+            team_name AS "teamName",
+            theme_name AS "themeName",
+            problem_statement AS "problemStatement",
+            member1,
+            member2,
+            member3,
+            backup_email AS "backupEmail",
+            backup_phone AS "backupPhone",
+            github_username AS "githubUsername",
+            utr_id AS "utrNumber"
+          FROM test_teams
+          WHERE uuid = $1::varchar`,
+          [teamId]
+        );
+        
+      if (result.rows.length === 0) {
+        return {
+          success: false,
+          ticket: null,
+        };
+      }
+  
+      const row = result.rows[0];
+  
+     
+      return {
+        success: true,
+        ticket: row,
+      };
+    } catch (e) {
+      console.error("Error in getTickettest:", e);
+      return { success: false, message: "Error retrieving ticket" };
     } finally {
       client.release();
     }

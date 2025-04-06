@@ -35,7 +35,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: "https://advaya.bgscet.ac.in",
+    origin: "http://localhost:3000",
     credentials: true
   })
 );
@@ -82,6 +82,8 @@ app.put('/details/update', async (req, res) => {
       member3,
       githubUsername,
       utrNumber,
+      backupEmail,
+      backupPhone
     } = req.body;
 
     const updateResult = await queries.UpdateTeamDetails(
@@ -97,7 +99,9 @@ app.put('/details/update', async (req, res) => {
       utrNumber,
       githubUsername,
       themeName,
-      problemStatement
+      problemStatement,
+      backupEmail,
+      backupPhone
     );
 
     if (updateResult.success) {
@@ -714,6 +718,16 @@ app.get("/ticket/:ticketid", async (req, res) => {
   try {
     const tickerId = req.params.ticketid;
     const resDb = await queries.getTicket(tickerId);
+    res.status(200).send(resDb);
+  } catch (error) {
+    console.error("Payment verification Error:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+})
+app.get("/test/:ticketid", async (req, res) => {
+  try {
+    const tickerId = req.params.ticketid;
+    const resDb = await queries.getTickettest(tickerId);
     res.status(200).send(resDb);
   } catch (error) {
     console.error("Payment verification Error:", error);
