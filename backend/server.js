@@ -269,7 +269,7 @@ app.post('/register', async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-
+//sending noraml mail seperately api
 app.post('/mail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
   const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`, 'ef2c2b');
@@ -291,6 +291,18 @@ app.post('/mail', async (req, res) => {
   console.log(mail_res)
   res.sendStatus(200);
 });
+//sending update mail seperately api 
+app.post('/updatemail', async (req, res) => {
+  console.log('Received Status Callback:', req.body);
+    const mail_res = await Helper.sendUpdateEmail(
+    mail,
+   leaderName,
+     uuid
+  );
+  console.log(mail_res)
+  res.sendStatus(200);
+});
+
 
 // app.post("/template", async(req,res) => 
 // {
@@ -317,6 +329,8 @@ app.post('/mail', async (req, res) => {
 
 
 // })
+
+//whatsapp not used for now 
 app.post("/whatsapp", async (req, res) => {
   console.log("Received request body:", req.body);
 

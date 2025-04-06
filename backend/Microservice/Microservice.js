@@ -166,6 +166,113 @@ class Helper {
       return false;
     }
   }
+  static async sendUpdateEmail(toEmail, leaderName, uuid) {
+    const emailHTML = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+ <style>
+  body {
+    line-height: 1.4;
+    color: #3a3a3a;
+    margin: 0;
+    padding: 0;
+    background-color: #fef3f3; /* Soft pink-beige */
+    font-family: 'Arial', sans-serif;
+  }
+
+  .container {
+    background-color: #f9d5d3; /* Gentle blush background */
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 700px;
+    margin: auto;
+    box-shadow: 0 0 15px rgba(0,0,0,0.08);
+  }
+
+  h1 {
+    text-align: center;
+    color: #c0392b; /* Rich red */
+  }
+
+  p {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .highlight {
+    color: #e74c3c; /* Emphasized red */
+    font-weight: bold;
+  }
+
+  .button {
+    display: inline-block;
+    margin-top: 20px;
+    background-color: #c0392b;
+    color: white;
+    padding: 12px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: background 0.3s ease;
+  }
+
+  .button:hover {
+    background-color: #e74c3c;
+  }
+
+  .footer {
+    margin-top: 30px;
+    font-size: 14px;
+    color: #777;
+    text-align: center;
+  }
+</style>
+
+  </head>
+  <body>
+    <div class="container">
+      <h1>Update Your Team Info</h1>
+      <p>Hello <strong>${leaderName}</strong>,</p>
+
+      <p>Thank you again for registering for <strong>ADVAYA HACKATHON</strong>! We’re excited to have you onboard.</p>
+
+      <p class="highlight">⚠️ Please note: Submitting your <strong>GitHub Username</strong> is <u>MANDATORY</u> for all participants.</p>
+
+      <p>If you'd like, you may also update your team details (like phone number, team name, members, etc.) using the link below. This is completely <strong>optional</strong> — but  <strong><u>GitHub username is required</u></strong>.</p>
+
+      <a class="button" href="https://advaya.bgscet.ac.in/update/form?id=${uuid}">Submit GitHub Username / Update Details</a>
+
+      <p>Make sure you do it before the event to avoid any issues. 😊</p>
+
+      <div class="footer">
+        If you have questions or need help, feel free to reply to this email.<br />
+        See you on <strong>April 11th, 2025</strong>! 🚀
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  const mailOptions = {
+    from: `Advaya Hackathon <${process.env.ADMIN_EMAIL}>`,
+    to: toEmail,
+    subject: "⚠️ GITHUB USERNAME is REQUIRED - Update Link Inside (ADVAYA HACKATHON)",
+    text: `Hi ${leaderName},\n\nGitHub Username is mandatory for all participants.\n\nYou may optionally update other team details here:\nhttps://advaya.bgscet.ac.in/update/form?id=${uuid}\n\nSee you on April 11th, 2025! 🚀`,
+    html: emailHTML
+  };
+    try {
+      const info = await Helper.transporter.sendMail(mailOptions);
+      console.log(chalk.green(`Update prompt email sent: ${info.messageId}`));
+      return true;
+    } catch (error) {
+      console.error(chalk.red("Error sending update prompt email:", error));
+      saveFailedEmail({ toEmail, reason: "updatePrompt", uuid });
+      return false;
+    }
+  }
+  
 }
 
 module.exports = Helper;
