@@ -59,6 +59,66 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
+app.put('/details/update', async (req, res) => {
+  try {
+    const { uuid } = req.query;
+
+    if (!uuid) {
+      return res.status(400).json({ success: false, message: 'UUID is required in query' });
+    }
+
+    console.log("Raw Body:", req.body);
+
+    const {
+      leaderName,
+      collegeName,
+      email,
+      phone,
+      teamName,
+      themeName,
+      problemStatement,
+      member1,
+      member2,
+      member3,
+      githubUsername,
+      utrNumber,
+    } = req.body;
+
+    const updateResult = await queries.UpdateTeamDetails(
+      uuid,
+      leaderName,
+      teamName,
+      email,
+      phone,
+      collegeName,
+      member1,
+      member2,
+      member3,
+      utrNumber,
+      githubUsername,
+      themeName,
+      problemStatement
+    );
+
+    if (updateResult.success) {
+      return res.status(200).json({
+        success: true,
+        message: 'Team details updated',
+        data: updateResult.data
+      });
+    } else {
+      return res.status(400).json(updateResult);
+    }
+
+  } catch (error) {
+    console.error('Error in /details/update:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error while updating team details'
+    });
+  }
+});
+
 app.post('/register', async (req, res) => {
   try {
     console.log("Raw Body:", req.body);

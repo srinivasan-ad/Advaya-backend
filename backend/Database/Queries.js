@@ -1011,5 +1011,71 @@ ORDER BY s.created_at ASC;
       client.release();
     }
   }
+  async UpdateTeamDetails(uuid, leader, teamName, email, phone_no, college, member1, member2, member3, utr, github_username, theme_name,  problemStatement) {
+    const client = await db.getClient();
+    try {
+      const selectThemeQuery = "SELECT id FROM themes WHERE name = $1";
+      const themeResult = await client.query(selectThemeQuery, [theme_name]);
+  
+      if (themeResult.rowCount === 0) {
+        return { success: false, message: "Theme not found" };
+      }
+  
+      const theme_id = themeResult.rows[0].id;
+      const updateQuery = `
+        UPDATE test_teams 
+        SET 
+          leader = $1,
+          team_name = $2,
+          phone = $3,
+          college = $4,
+          member1 = $5,
+          member2 = $6,
+          member3 = $7,
+          utr_id = $8,
+          github_username = $9,
+          email = $10,
+          theme_id = $11,
+          theme_name = $12,
+          problem_statement = $13
+        WHERE uuid = $14
+        RETURNING id;
+      `;
+      const values = [
+        leader,
+        teamName,
+        phone_no,
+        college,
+        member1,
+        member2,
+        member3,
+        utr,
+        github_username,
+        email,
+        theme_id,
+        theme_name,
+        problemStatement,
+        uuid,
+      ];
+  
+      const result = await client.query(updateQuery, values);
+  
+      if (result.rowCount > 0) {
+        return { success: true, message: "Team updated successfully", data: result.rows[0] };
+      } else {
+        return { success: false, message: "No team found with that UTR ID" };
+      }
+    } catch (e) {
+      console.error(chalk.red("Error in UpdateTeamDetails:"), e);
+      return {
+        success: false,
+        message: "Error updating team details",
+      };
+    } finally {
+      client.release();
+    }
+  }
+  
+  
 }
 module.exports = Queries;
