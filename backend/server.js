@@ -59,6 +59,45 @@ app.get("/ping", async (req, res) => {
     return res.send("Database is offline :(");
   }
 });
+
+app.get("/validate/github/user/:username", async (req, res) => {
+  try {
+    const username = req.params.username;
+    const response = await fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      },
+    });
+    const resJson = await response.json();
+    if (response.status === 200) {
+      res.status(200).send({
+        success: true,
+        message: 'Username exists',
+        githubData: resJson,
+      });
+    } else if (response.status === 403) {
+      res.status(403).send({
+        success: false,
+        message: resJson.message,
+        githubData: resJson,
+      });
+    } else {
+      res.status(400).send({
+        success: false,
+        message: 'Username does not exists',
+        githubData: resJson,
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(400).send({
+      success: false,
+      message: 'Server error',
+      error
+    });
+  }
+})
+
 app.put('/details/update', async (req, res) => {
   try {
     const { uuid } = req.query;
@@ -139,7 +178,7 @@ app.post('/register', async (req, res) => {
       member1,
       member2,
       member3,
-      utrNumber,  
+      utrNumber,
     } = req.body;
 
     if (!leaderName || !collegeName || !email || !phone || !teamName || !themeName || !utrNumber) {
@@ -193,7 +232,7 @@ app.post('/register', async (req, res) => {
       if (!file) {
         return res.status(400).json(result);
       }
-        const mail_res = await Helper.sendRegistrationEmail(
+      const mail_res = await Helper.sendRegistrationEmail(
         email,
         leaderName,
         teamName,
@@ -216,7 +255,7 @@ app.post('/register', async (req, res) => {
       //   themeName,
       //   uuid
       // );
-  
+
       // console.log("Message Sent Status:", createMessage);
       return res.status(200).json(result);
     } else {
@@ -231,15 +270,15 @@ app.post('/register', async (req, res) => {
 
 app.post('/mail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
-  const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`,'ef2c2b');
+  const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`, 'ef2c2b');
   if (!file) {
     return res.status(400).json(result);
   }
-    const mail_res = await Helper.sendRegistrationEmail(
+  const mail_res = await Helper.sendRegistrationEmail(
     "manojadkc2004@gmail.com",
     "Manoja",
     "Light Mode",
-     "AI automation",
+    "AI automation",
     "Solving Workload on employees",
     "Manoja",
     "Vilas",
@@ -283,11 +322,11 @@ app.post('/updatemail', async (req, res) => {
 //     console.error("Error sending WhatsApp message:", error);
 //     res.status(500).send("Failed to send WhatsApp message");
 //   }
-  
+
 
 // })
 app.post("/whatsapp", async (req, res) => {
-  console.log("Received request body:", req.body); 
+  console.log("Received request body:", req.body);
 
   const { ButtonPayload, From, Body } = req.body;
 
@@ -296,14 +335,14 @@ app.post("/whatsapp", async (req, res) => {
     return res.status(400).send("UUID missing.");
   }
 
-  const uuid = 123; 
+  const uuid = 123;
   console.log("Extracted UUID:", uuid);
-  
+
   try {
     const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
     const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
 
-    const response =  twilloWhatsapp.response.message();
+    const response = twilloWhatsapp.response.message();
     response.body("QR Code for your ticket:");
     response.media(qrPublicUrl);
 
@@ -709,7 +748,7 @@ app.post("/payment/verify-order", async (req, res) => {
       //   formData.themeName,
       //   uuid
       // );
-  
+
       // console.log("Message Sent Status:", createMessage);
       result.verified = true
       console.log(result)
