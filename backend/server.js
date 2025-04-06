@@ -64,6 +64,7 @@ app.get("/validate/github/user/:username", async (req, res) => {
   try {
     const username = req.params.username;
     const response = await fetch(`https://api.github.com/users/${username}`);
+    console.log(response.status);
     if (response.status === 200) {
       res.status(200).send({
         success: true,
