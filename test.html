@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #fce8e6; color: #333; padding: 20px; }
+    .container { background: #fff; padding: 30px; border-radius: 10px; max-width: 700px; margin: auto; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+    h1 { text-align: center; color: #c0392b; }
+    p { font-size: 16px; line-height: 1.5; }
+    .highlight { color: #e74c3c; font-weight: bold; }
+    .button { display: inline-block; margin-top: 20px; background-color: #c0392b; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+    .footer { margin-top: 30px; font-size: 14px; color: #777; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Time to Update Your Team Details!</h1>
+    <p>Hello <strong>${leaderName}</strong>,</p>
+
+    <p>Thanks again for registering for <strong>ADVAYA HACKATHON</strong>! To make sure we have everything in place, we request you to update your team details.</p>
+
+    <p class="highlight">⚠️ Important: GitHub Username is mandatory for all teams. Please make sure to add it while updating!</p>
+
+    <p>You can update your team details here:</p>
+    <a class="button" href="https://advaya.bgscet.ac.in/update/form?id=${uuid}">Update Team Details</a>
+
+    <p>You can edit your team members, phone number, UTR, and more from the link above.</p>
+
+    <div class="footer">
+      If you have any questions, feel free to reply to this email.<br />
+      See you on <strong>April 11th, 2025</strong>! 🚀
+    </div>
+  </div>
+</body>
+</html>
