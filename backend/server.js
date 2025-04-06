@@ -293,9 +293,9 @@ app.post('/mail', async (req, res) => {
 app.post('/updatemail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
     const mail_res = await Helper.sendUpdateEmail(
-    "forprogramingpurpose@gmail.com",
-    "Manoja",
-    "82147e"
+    mail,
+   leaderName,
+     uuid
   );
   console.log(mail_res)
   res.sendStatus(200);
