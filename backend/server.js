@@ -63,8 +63,13 @@ app.get("/ping", async (req, res) => {
 app.get("/validate/github/user/:username", async (req, res) => {
   try {
     const username = req.params.username;
-    const response = await fetch(`https://api.github.com/users/${username}`);
-    console.log(response.status);
+    const response = await fetch(`https://api.github.com/users/${username}`, {
+      headers: {
+        Authorization: process.env.GITHUB_TOKEN,
+      },
+    });
+    const resJson = await response.json();
+    console.log(response.status, resJson);
     if (response.status === 200) {
       res.status(200).send({
         success: true,
