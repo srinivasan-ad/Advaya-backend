@@ -1144,13 +1144,39 @@ ORDER BY s.created_at ASC;
       client.release();
     }
   }
+  async registerUpdateEmail(email , leaderName, uuid)
+  {
+    const client = await db.getClient();
+        try {
+          const mailRes = await Helper.sendUpdateEmail( email , leaderName, uuid);
+  
+          if (mailRes) {
+            await client.query(
+              `UPDATE teams SET update_email = true WHERE uuid = $1`,
+              [uuid]
+            );
+            console.log(` Email sent to ${email} (${leaderName}) and marked as updated.`);
+            return { success: true, message: "Emails processed." };
+          } else {
+            console.log(`Failed to send email to ${email}`);
+            return { success: false, message: "Failed to send email." };
+          }
+        } 
+  catch (e) {
+      console.error("Error in sendAllUpdateMails:", e);
+      return { success: false, message: "Error while sending update emails" };
+    } finally {
+      client.release();
+    }
+  }
+  
   async sendAllUpdateMails() {
     const client = await db.getClient();
   
     try {
-
+      
       const result = await client.query(
-        `SELECT uuid, leader AS "leaderName", email FROM test_teams WHERE update_email = false`
+        `SELECT uuid, leader AS "leaderName", email FROM teams WHERE update_email = false`
       );
   
       const rows = result.rows;
@@ -1173,7 +1199,7 @@ ORDER BY s.created_at ASC;
             );
             console.log(` Email sent to ${email} (${leaderName}) and marked as updated.`);
           } else {
-            console.warn(`Failed to send email to ${email}`);
+            console.log(`Failed to send email to ${email}`);
           }
   
         } catch (mailErr) {

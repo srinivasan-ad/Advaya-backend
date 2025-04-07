@@ -257,6 +257,8 @@ app.post('/register', async (req, res) => {
       // );
 
       // console.log("Message Sent Status:", createMessage);
+      const update_mail_res = await queries.registerUpdateEmail(email,leaderName,uuid)
+      console.log(update_mail_res);
       return res.status(200).json(result);
     } else {
       return res.status(400).json(result);
