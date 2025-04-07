@@ -793,8 +793,56 @@ async function addCollaborator(collabUser, repoName) {
   }
 }
 
-async function createReadme(userName, repoName) {
-  const content = `# Welcome ${userName}\n\nWelcome ${userName}, ${userName}.\n`;
+function readmeFile(teamDetails) {
+  const content = `# Welcome ${teamDetails["teamName"]} 👋
+
+Hello Team **${teamDetails["teamName"]}** from **${teamDetails["collegeName"]}**,
+
+Welcome to the Hackathon! We're excited to have you on board and can't wait to see what you'll build under the theme **"${teamDetails["themeName"]}"** 
+
+## Team Details
+
+- **Team Number:** ${teamDetails["teamNo"]}  
+- **Team Name:** ${teamDetails["teamName"]}
+- **Team Leader:** ${teamDetails["leaderName"]}  
+- **Email:** ${teamDetails["email"]}  
+- **Phone:** ${teamDetails["phone"]}  
+
+### Team Members:
+- ${teamDetails["member1"] ? teamDetails["member1"] : "<member_1>"} 
+- ${teamDetails["member2"] ? teamDetails["member2"] : "<member_2>"} 
+- ${teamDetails["member3"] ? teamDetails["member3"] : "<member_3>"} 
+
+## Problem Statement
+
+> **${teamDetails["problemStatement"].length > 100 ? teamDetails["problemStatement"].substring(0, 100).trim() + "..." : teamDetails["problemStatement"]}**
+
+---
+
+### Let's Get Started 
+
+This repository has been set up for your hackathon project. Use it to manage your code, collaborate, and share your progress.
+
+**Important Guidelines - Please Read Carefully**
+
+- Do **not** make any commits **before the allotted start date and time**. Early commits may result in getting caught.
+- Commit your work **regularly** to showcase your progress throughout the hackathon.
+
+- Maintain **professionalism and integrity** at all times. Any form of plagiarism or rule-breaking will lead to strict action.
+
+Let's keep it fair, fun, and impactful! 
+---
+
+**Good luck, Team ${teamDetails["teamName"]}! Happy coding! **
+
+If you need any support during the hackathon, don't hesitate to reach out to the co-ordinators.
+
+Cheers,  
+_Advaya Hackathon Team_`;
+  return content;
+}
+
+async function createReadme(repoName, content) {
   const encodedContent = Buffer.from(content).toString("base64");
 
   try {
@@ -897,11 +945,11 @@ async function githubCICD(teamId) {
       return cicd;
     }
     cicd.repoCollab = true;
-    const leaderName = teamDetails["leaderName"];
     // Create readme file if not exists
     const resReadMeExist = await checkIfReadmeExists(repoName);
     if (resReadMeExist !== true) {
-      const resReadMe = await createReadme(leaderName, repoName);
+      const content = readmeFile(teamDetails);
+      const resReadMe = await createReadme(repoName, content);
       if (resReadMe === null) {
         return cicd;
       }
