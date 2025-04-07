@@ -933,13 +933,16 @@ app.post("/admin/approve/ticket/:ticketid", async (req, res) => {
       res.status(200).send({
         success: false,
         message: "GitHub CICD error",
-        githubDetails: githubAction
+        githubDetails: githubAction,
+        checkedIn: false
       });
       return;
     }
+    const checkedIn = await queries.checkedIn(tickerId);
     res.status(200).send({
       success: true,
-      githubDetails: githubAction
+      githubDetails: githubAction,
+      checkedIn: checkedIn
     });
   } catch (error) {
     console.error("Login Error:", error);

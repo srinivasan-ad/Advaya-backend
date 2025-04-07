@@ -244,6 +244,29 @@ class Queries {
   }
 }
 
+  async checkedIn(teamId) {
+    const client = await db.getClient();
+    try {
+      const result = await client.query(
+        `UPDATE teams
+        SET checked_in = TRUE
+        WHERE uuid = $1::varchar
+        RETURNING id`,
+        [teamId]
+      );
+
+      if (result.rows.length === 0) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("Error in getTickettest:", e);
+      return false;
+    } finally {
+      client.release();
+    }
+  }
+
   
   async AddComment(user_id, user_name, content, timestamp) {
     const client = await db.getClient();
