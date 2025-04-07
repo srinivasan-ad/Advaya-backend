@@ -1143,6 +1143,53 @@ ORDER BY s.created_at ASC;
       client.release();
     }
   }
+  async sendAllUpdateMails() {
+    const client = await db.getClient();
+  
+    try {
+t
+      const result = await client.query(
+        `SELECT uuid, leader AS "leaderName", email FROM test_teams WHERE update_email = false`
+      );
+  
+      const rows = result.rows;
+  
+      if (rows.length === 0) {
+        console.log(" All teams already notified.");
+        return { success: true, message: "No pending emails." };
+      }
+  
+      for (const row of rows) {
+        const { uuid, leaderName, email } = row;
+  
+        try {
+          const mailRes = await this.sendUpdateMail({ leaderName, uuid, email });
+  
+          if (mailRes?.success) {
+            await client.query(
+              `UPDATE test_teams SET update_email = true WHERE uuid = $1`,
+              [uuid]
+            );
+            console.log(`📧 Email sent to ${email} (${leaderName}) and marked as updated.`);
+          } else {
+            console.warn(`Failed to send email to ${email}`);
+          }
+  
+        } catch (mailErr) {
+          console.error(`Error sending to ${email}:`, mailErr);
+        }
+      }
+  
+      return { success: true, message: "Emails processed." };
+  
+    } catch (e) {
+      console.error("Error in sendAllUpdateMails:", e);
+      return { success: false, message: "Error while sending update emails" };
+    } finally {
+      client.release();
+    }
+  }
+  
   
   
 }

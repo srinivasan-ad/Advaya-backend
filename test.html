@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<style>
+body {
+  line-height: 1.4;
+  color: #3a3a3a;
+  margin: 0;
+  padding: 0;
+  background-color: #fef3f3; /* Soft pink-beige */
+  font-family: 'Arial', sans-serif;
+}
+
+.container {
+  background-color:rgb(240, 221, 220); /* Gentle blush background */
+  padding: 30px;
+  border-radius: 10px;
+  max-width: 700px;
+  margin: auto;
+  box-shadow: 0 0 15px rgba(0,0,0,0.08);
+}
+
+h1 {
+  text-align: center;
+  color: #c0392b; /* Rich red */
+}
+
+p {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.highlight {
+  color: #e74c3c; /* Emphasized red */
+  font-weight: bold;
+}
+
+.button {
+  display: inline-block;
+  background-color: #c0392b;
+  color: white;
+  padding: 12px 20px;
+  text-decoration: none;
+  border-radius: 6px;
+ border: 0px;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.button:hover {
+  background-color: #e74c3c;
+}
+
+.footer {
+  margin-top: 30px;
+  font-size: 14px;
+  color: #777;
+  text-align: center;
+}
+</style>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Update Your Team Info</h1>
+    <p>Hello <strong>${leaderName}</strong>,</p>
+
+    <p>Thank you again for registering for <strong>ADVAYA HACKATHON</strong>! We’re excited to have you onboard.</p>
+
+    <p class="highlight">⚠️ Please note: Submitting your <strong>GitHub Username</strong> is <u>MANDATORY</u> for all participants.</p>
+
+    <p>If you'd like, you may also update your team details (like phone number, team name, members, etc.) using the link below. This is completely <strong>optional</strong> — but  <strong><u>GitHub username is required</u></strong>.</p>
+
+    <div style="text-align: center; padding: 30px;">
+        <button class="button"> <a style="color: #fef3f3;" href="https://advaya.bgscet.ac.in/update/form?id=${uuid}">
+           Submit GitHub Username / Update Details
+         </a>
+         </button>
+       </div>
+      
+      <div style="text-align: center; ">
+   <strong> <p>Make sure you do it before the event to avoid any issues. 😊</p></strong>
+</div>
+    <div class="footer">
+      If you have questions or need help, feel free to contact us.<br />
+      See you on <strong>April 11th, 2025</strong>! 🚀
+    </div>
+  </div>
+</body>
+</html>

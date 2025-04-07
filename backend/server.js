@@ -63,13 +63,11 @@ app.get("/ping", async (req, res) => {
 app.get("/validate/github/user/:username", async (req, res) => {
   try {
     const username = req.params.username;
-    const response = await fetch(`https://api.github.com/users/${username}`,
-       {
+    const response = await fetch(`https://api.github.com/users/${username}`, {
       headers: {
         Authorization: `token ${process.env.GITHUB_TOKEN}`,
       },
-    }
-  );
+    });
     const resJson = await response.json();
     if (response.status === 200) {
       res.status(200).send({
@@ -295,9 +293,9 @@ app.post('/mail', async (req, res) => {
 app.post('/updatemail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
     const mail_res = await Helper.sendUpdateEmail(
-    mail,
-   leaderName,
-     uuid
+    "forprogramingpurpose@gmail.com",
+   "Aditya S",
+   "82147e"
   );
   console.log(mail_res)
   res.sendStatus(200);
