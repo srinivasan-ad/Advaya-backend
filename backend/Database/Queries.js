@@ -1,6 +1,7 @@
 const chalk = require("chalk");
 const db = require("./connection");
 const { saveToFile } = require("./helper");
+const Helper = require("../Microservice/Microservice");
 ;
 
 class Queries {
@@ -1147,13 +1148,13 @@ ORDER BY s.created_at ASC;
     const client = await db.getClient();
   
     try {
-t
+
       const result = await client.query(
         `SELECT uuid, leader AS "leaderName", email FROM test_teams WHERE update_email = false`
       );
   
       const rows = result.rows;
-  
+      console.log(rows)
       if (rows.length === 0) {
         console.log(" All teams already notified.");
         return { success: true, message: "No pending emails." };
@@ -1163,14 +1164,14 @@ t
         const { uuid, leaderName, email } = row;
   
         try {
-          const mailRes = await this.sendUpdateMail({ leaderName, uuid, email });
+          const mailRes = await Helper.sendUpdateEmail( email , leaderName, uuid);
   
-          if (mailRes?.success) {
+          if (mailRes) {
             await client.query(
               `UPDATE test_teams SET update_email = true WHERE uuid = $1`,
               [uuid]
             );
-            console.log(`📧 Email sent to ${email} (${leaderName}) and marked as updated.`);
+            console.log(` Email sent to ${email} (${leaderName}) and marked as updated.`);
           } else {
             console.warn(`Failed to send email to ${email}`);
           }

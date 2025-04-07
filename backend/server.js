@@ -267,6 +267,16 @@ app.post('/register', async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
+app.post('/bulkupdatemail', async (req, res) => {
+  try {
+    const result = await queries.sendAllUpdateMails();
+    return res.status(result.success ? 200 : 500).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
 //sending noraml mail seperately api
 app.post('/mail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
