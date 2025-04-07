@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 const fileUpload = require("express-fileupload");
 require('./Database/retry')
 require('./Microservice/retry_mail')
@@ -23,9 +24,8 @@ const middleware = new Middleware();
 const queries = new Queries();
 const helper = new Helper();
 
-
 const ADMIN_COMMENT_PASS = `Ld)2+Arcgz=Nh6ZDWaw$X&`;
-const ADMIN_PASS = `Ld)2+Arcgz=Nh6ZDWaw$X&`;
+const ADMIN_PASS = `cat`;
 app.use(fileUpload());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -64,12 +64,12 @@ app.get("/validate/github/user/:username", async (req, res) => {
   try {
     const username = req.params.username;
     const response = await fetch(`https://api.github.com/users/${username}`,
-       {
-      headers: {
-        Authorization: `token ${process.env.GITHUB_TOKEN}`,
-      },
-    }
-  );
+      {
+        headers: {
+          Authorization: `token ${process.env.GITHUB_TOKEN}`,
+        },
+      }
+    );
     const resJson = await response.json();
     if (response.status === 200) {
       res.status(200).send({
@@ -294,92 +294,14 @@ app.post('/mail', async (req, res) => {
 //sending update mail seperately api 
 app.post('/updatemail', async (req, res) => {
   console.log('Received Status Callback:', req.body);
-    const mail_res = await Helper.sendUpdateEmail(
+  const mail_res = await Helper.sendUpdateEmail(
     mail,
-   leaderName,
-     uuid
+    leaderName,
+    uuid
   );
   console.log(mail_res)
   res.sendStatus(200);
 });
-
-
-// app.post("/template", async(req,res) => 
-// {
-
-//   const { teamLeadernumber, teamLeader, teamName, member1, member2, member3, themeName, uuid  } = req.body;
-//   try {
-//     const createMessage = await twilloWhatsapp.createMessage(
-//       teamLeadernumber,
-//       teamLeader,
-//       teamName,
-//       member1,
-//       member2,
-//       member3,
-//       themeName,
-//       uuid
-//     );
-
-//     console.log("Message Sent Status:", createMessage);
-//   }
-//   catch (error) {
-//     console.error("Error sending WhatsApp message:", error);
-//     res.status(500).send("Failed to send WhatsApp message");
-//   }
-
-
-// })
-
-//whatsapp not used for now 
-app.post("/whatsapp", async (req, res) => {
-  console.log("Received request body:", req.body);
-
-  const { ButtonPayload, From, Body } = req.body;
-
-  if (!ButtonPayload) {
-    console.error("UUID missing from payload.");
-    return res.status(400).send("UUID missing.");
-  }
-
-  const uuid = 123;
-  console.log("Extracted UUID:", uuid);
-
-  try {
-    const qrFilePath = await twilloWhatsapp.generateQRFile(`advaya.bgscet.ac.in/ticket/${uuid}`, uuid);
-    const qrPublicUrl = `${process.env.SERVER_URL}/qrcodes/qr_${uuid}.png`;
-
-    const response = twilloWhatsapp.response.message();
-    response.body("QR Code for your ticket:");
-    response.media(qrPublicUrl);
-
-    res.set("Content-Type", "text/xml");
-    res.send(response.toString());
-  } catch (error) {
-    console.error("Error sending WhatsApp message:", error);
-    res.status(500).send("Failed to send WhatsApp message");
-  }
-});
-
-
-// app.post("/coupon", async (req,res) =>{ 
-//   const {couponCode} = req.body
-//   try{
-//     const result = await queries.couponsValidation(couponCode);
-//     if (!result.success) {
-//       return res.status(400).json(result)
-//     }
-//     if(result.success)
-//     {  
-//     return res.status(200).json(result)
-//   }
-//   }
-//   catch (e) {
-//     return res.status(500).json({ success: false, message: "internal server error" })
-
-//   }
-// });
-
-//change coupon to check validity api then use coupon api to toggle payment in last check the coupon code in form data and secrement it 
 
 app.post("/comment", async (req, res) => {
   const { user_id, user_name, content, timestamp } = req.body;
@@ -790,35 +712,19 @@ app.get("/test/:ticketid", async (req, res) => {
   }
 })
 
-const sessionIds = [];
 app.post("/admin/login", (req, res) => {
   try {
     const { password } = req.body;
     if (password === ADMIN_PASS) {
-      const sessionId = v4();
-      sessionIds.push(sessionId);
-      res.cookie("sessionId", sessionId, {
-        httpOnly: true,
-        secure: true,
-        signed: true,
-        path: "/",
-        sameSite: "none",
-        maxAge: 1000 * 60 * 60 * 24 * 30,
-      });
       res.status(200).send({
         success: true,
-        pass: true,
         message: "Password is correct. You can use all admin APIs."
       });
-      return;
-    }
-    else {
+    } else {
       res.status(200).send({
-        success: true,
-        pass: false,
+        success: false,
         message: "Password is incorrect"
       });
-      return;
     }
   } catch (error) {
     console.error("Login Error:", error);
@@ -826,51 +732,32 @@ app.post("/admin/login", (req, res) => {
   }
 });
 
-app.post("/admin/verify", (req, res) => {
+async function githubCICD(teamId) {
   try {
-    const { sessionId } = req.signedCookies;
-    if (sessionIds.includes(sessionId)) {
-      res.status(200).send({
-        success: true,
-        doLogin: false,
-        message: "Welcome Admin."
-      });
-      return;
+    const resTeam = await queries.getTicket(teamId);
+    if (resTeam.success === false || !resTeam.ticket) {
+      return false;
     }
-    else {
-      res.status(200).send({
-        success: true,
-        doLogin: true,
-        message: "Please login."
-      });
-      return;
-    }
+    const teamDetails = resTeam.ticket;
+
   } catch (error) {
-    console.error("Login Error:", error);
-    return res.status(500).json({ success: false, message: "Internal server error", error });
+    console.log(error);
+    return false;
   }
-});
+}
 
 app.post("/admin/approve/ticket/:ticketid", (req, res) => {
   try {
     const tickerId = req.params.ticketid;
-    const { sessionId } = req.signedCookies;
-    if (sessionIds.includes(sessionId)) {
-      res.status(200).send({
-        success: true,
-        doLogin: false,
-        message: "Welcome Admin."
+    const password = req.body.password;
+    if (password !== ADMIN_PASS) {
+      res.status(400).send({
+        success: false,
+        message: "Password is incorrect"
       });
       return;
     }
-    else {
-      res.status(200).send({
-        success: true,
-        doLogin: true,
-        message: "Please login."
-      });
-      return;
-    }
+
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ success: false, message: "Internal server error", error });

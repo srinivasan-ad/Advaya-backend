@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.8.4",
     "backend": "file:",
     "chalk": "^4.1.2",
     "cookie-parser": "^1.4.7",

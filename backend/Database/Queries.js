@@ -201,6 +201,7 @@ class Queries {
     try {
       const result = await client.query(
         `SELECT 
+        team_no AS "teamNo",
           leader AS "leaderName",
           college AS "collegeName",
           email,
