@@ -868,13 +868,14 @@ async function githubCICD(teamId) {
     const teamDetails = resTeam.ticket;
     // console.log(teamDetails);
     const properTeamName = teamDetails["teamName"].normalize("NFKD")
-      .replace(/[^\w\-\.]/g, "_")
-      .replace(/[\u{0080}-\u{FFFF}]/gu, "_")
+      .replace(/[\u{0080}-\u{FFFF}]/gu, "")
+      .replace(/\s+/g, " ")
+      .replace(/\s+/g, "_")
+      .replace(/[^\w\-\.]/g, "")
+      .replace(/_+/g, "_")
       .replace(/^\.+/, "")
-      .replace(/ /g, "_")
-      .substring(0, 95)
-      .toLowerCase();
-    const repoName = `${teamDetails["teamNo"]}-${properTeamName}`;
+      .substring(0, 90);
+    const repoName = `TeamNo-${teamDetails["teamNo"]}-${properTeamName}`;
     const resExist = await checkIfRepoExists(repoName);
     const cicd = {
       repoExist: false,
