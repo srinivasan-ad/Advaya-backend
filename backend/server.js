@@ -25,6 +25,7 @@ const queries = new Queries();
 const helper = new Helper();
 
 const ADMIN_COMMENT_PASS = `Ld)2+Arcgz=Nh6ZDWaw$X&`;
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const ADMIN_PASS = `cat`;
 app.use(fileUpload());
 app.use(express.json());
@@ -35,7 +36,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use(
   cors({
-    origin: "https://advaya.bgscet.ac.in",
+    origin: "http://localhost:3000",
     credentials: true
   })
 );
@@ -259,7 +260,7 @@ app.post('/register', async (req, res) => {
       // );
 
       // console.log("Message Sent Status:", createMessage);
-      const update_mail_res = await queries.registerUpdateEmail(email,leaderName,uuid)
+      const update_mail_res = await queries.registerUpdateEmail(email, leaderName, uuid)
       console.log(update_mail_res);
       return res.status(200).json(result);
     } else {
@@ -744,21 +745,175 @@ app.post("/admin/login", (req, res) => {
   }
 });
 
-async function githubCICD(teamId) {
-  try {
-    const resTeam = await queries.getTicket(teamId);
-    if (resTeam.success === false || !resTeam.ticket) {
-      return false;
-    }
-    const teamDetails = resTeam.ticket;
+const GITHUB_ORG = "AdvayaHackathon";
 
+async function createRepo(repoName) {
+  try {
+    console.log(GITHUB_TOKEN);
+    const res = await axios.post(
+      `https://api.github.com/orgs/${GITHUB_ORG}/repos`,
+      {
+        name: repoName,
+        private: true
+      },
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+    console.log(`✅ Repo '${repoName}' created successfully.`);
+    return res.data;
   } catch (error) {
-    console.log(error);
+    console.error("❌ Error creating repo:", error.response?.data || error.message);
+    return null;
+  }
+}
+
+async function addCollaborator(collabUser, repoName) {
+  try {
+    const res = await axios.put(
+      `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/collaborators/${collabUser}`,
+      {
+        permission: "admin"
+      },
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+    console.log(`✅ Collaborator '${collabUser}' added with admin access.`);
+    return res.data;
+  } catch (error) {
+    console.error("❌ Error adding collaborator:", error.response?.data || error.message);
+    return null;
+  }
+}
+
+async function createReadme(userName, repoName) {
+  const content = `# Welcome ${userName}\n\nWelcome ${userName}, ${userName}.\n`;
+  const encodedContent = Buffer.from(content).toString("base64");
+
+  try {
+    const res = await axios.put(
+      `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/contents/README.md`,
+      {
+        message: "Init commit by Advaya Org. Start Hacking 😀🚀.",
+        content: encodedContent
+      },
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+    console.log("✅ README.md added successfully.");
+    return res.data;
+  } catch (error) {
+    console.error("❌ Error creating README.md:", error.response?.data || error.message);
+    return null;
+  }
+}
+
+async function checkIfReadmeExists(repoName) {
+  try {
+    const res = await axios.get(
+      `https://api.github.com/repos/${GITHUB_ORG}/${repoName}/contents/README.md`,
+      {
+        headers: {
+          Authorization: `token ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+    console.log("✅ README.md exists at:", res.data.path);
+    return true;
+  } catch (err) {
+    if (err.response && err.response.status === 404) {
+      console.log("❌ README.md does not exist.");
+    }
     return false;
   }
 }
 
-app.post("/admin/approve/ticket/:ticketid", (req, res) => {
+async function checkIfRepoExists(repoName) {
+  try {
+    const res = await axios.get(`https://api.github.com/repos/${GITHUB_ORG}/${repoName}`, {
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github+json"
+      }
+    });
+    console.log("✅ Repo exists:", res.data["full_name"]);
+    return true;
+  } catch (err) {
+    console.error("⚠️ Error checking repo:", err.message);
+    if (err.response && err.response.status === 404) {
+      console.log("❌ Repo does not exist.");
+    }
+    return false;
+  }
+}
+
+async function githubCICD(teamId) {
+  try {
+    const resTeam = await queries.getTicket(teamId);
+    if (resTeam.success === false || !resTeam.ticket) {
+      return null;
+    }
+    const teamDetails = resTeam.ticket;
+    // console.log(teamDetails);
+    const properTeamName = teamDetails["teamName"].normalize("NFKD")
+      .replace(/[^\w\-\.]/g, "_")
+      .replace(/[\u{0080}-\u{FFFF}]/gu, "_")
+      .replace(/^\.+/, "")
+      .replace(/ /g, "_")
+      .substring(0, 95)
+      .toLowerCase();
+    const repoName = `${teamDetails["teamNo"]}-${properTeamName}`;
+    const resExist = await checkIfRepoExists(repoName);
+    const cicd = {
+      repoExist: false,
+      repoCollab: false,
+      repoReadMe: false,
+    };
+    // Crate a new repo if repo does not exists
+    if (resExist !== true) {
+      const resCreate = await createRepo(repoName);
+      if (resCreate === null) {
+        return cicd;
+      }
+    }
+    cicd.repoExist = true;
+    const collabUser = teamDetails["githubUsername"];
+    // Add a admin collab
+    const resCollab = await addCollaborator(collabUser, repoName);
+    if (resCollab === null) {
+      return cicd;
+    }
+    cicd.repoCollab = true;
+    const leaderName = teamDetails["leaderName"];
+    // Create readme file if not exists
+    const resReadMeExist = await checkIfReadmeExists(repoName);
+    if (resReadMeExist !== true) {
+      const resReadMe = await createReadme(leaderName, repoName);
+      if (resReadMe === null) {
+        return cicd;
+      }
+    }
+    cicd.repoReadMe = true;
+    return cicd;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+}
+
+app.post("/admin/approve/ticket/:ticketid", async (req, res) => {
   try {
     const tickerId = req.params.ticketid;
     const password = req.body.password;
@@ -769,12 +924,28 @@ app.post("/admin/approve/ticket/:ticketid", (req, res) => {
       });
       return;
     }
-
+    const githubAction = await githubCICD(tickerId);
+    if (githubAction === null ||
+      githubAction.repoCollab === false ||
+      githubAction.repoExist === false ||
+      githubAction.repoReadMe === false) {
+      res.status(200).send({
+        success: false,
+        message: "GitHub CICD error",
+        githubDetails: githubAction
+      });
+      return;
+    }
+    res.status(200).send({
+      success: true,
+      githubDetails: githubAction
+    });
   } catch (error) {
     console.error("Login Error:", error);
     return res.status(500).json({ success: false, message: "Internal server error", error });
   }
 });
+
 app.listen(process.env.PORT, () => {
   console.log(`Server started at http://localhost:${process.env.PORT}`);
 });
