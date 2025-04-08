@@ -285,12 +285,12 @@ app.post('/bulkupdatemail', async (req, res) => {
 //sending noraml mail seperately api
 app.post('/mail/:uuid', async (req, res) => {
   console.log('Received Status Callback:', req.body);
-  const {uuid} = req.params
+  const { uuid } = req.params
   const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`, 'ef2c2b');
   if (!file) {
     return res.status(400).json(result);
   }
-  const info  = await queries.getTicket(uuid)
+  const info = await queries.getTicket(uuid)
   const mail_res = await Helper.sendRegistrationEmail(
     info.ticket.email,
     info.ticket.leaderName,
@@ -804,7 +804,7 @@ Welcome to the Hackathon! We're excited to have you on board and can't wait to s
 
 ## Team Details
 
-- **Team Number:** ${teamDetails["teamNo"].trim()}  
+- **Team Number:** ${teamDetails["teamNo"]}  
 - **Team Name:** ${teamDetails["teamName"].trim()}
 - **Team Leader:** ${teamDetails["leaderName"].trim()}  
 - **Email:** ${teamDetails["email"].trim()}  
@@ -924,6 +924,8 @@ async function githubCICD(teamId) {
       .replace(/[^\w\-\.]/g, "")
       .replace(/_+/g, "_")
       .replace(/^\.+/, "")
+      .replace(/^_+/, "")
+      .replace(/_+$/, "")
       .substring(0, 90);
     const repoName = `${teamDetails["teamNo"]}.${properTeamName}`;
     const resExist = await checkIfRepoExists(repoName);
