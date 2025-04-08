@@ -794,28 +794,28 @@ async function addCollaborator(collabUser, repoName) {
 }
 
 function readmeFile(teamDetails) {
-  const content = `# Welcome ${teamDetails["teamName"]} 👋
+  const content = `# Welcome ${teamDetails["teamName"].trim()} 👋
 
-Hello Team **${teamDetails["teamName"]}** from **${teamDetails["collegeName"]}**,
+Hello Team **${teamDetails["teamName"].trim()}** from **${teamDetails["collegeName"].trim()}**,
 
 Welcome to the Hackathon! We're excited to have you on board and can't wait to see what you'll build under the theme **"${teamDetails["themeName"]}"** 
 
 ## Team Details
 
-- **Team Number:** ${teamDetails["teamNo"]}  
-- **Team Name:** ${teamDetails["teamName"]}
-- **Team Leader:** ${teamDetails["leaderName"]}  
-- **Email:** ${teamDetails["email"]}  
-- **Phone:** ${teamDetails["phone"]}  
+- **Team Number:** ${teamDetails["teamNo"].trim()}  
+- **Team Name:** ${teamDetails["teamName"].trim()}
+- **Team Leader:** ${teamDetails["leaderName"].trim()}  
+- **Email:** ${teamDetails["email"].trim()}  
+- **Phone:** ${teamDetails["phone"].trim()}  
 
 ### Team Members:
-- ${teamDetails["member1"] ? teamDetails["member1"] : "<member_1>"} 
-- ${teamDetails["member2"] ? teamDetails["member2"] : "<member_2>"} 
-- ${teamDetails["member3"] ? teamDetails["member3"] : "<member_3>"} 
+- ${teamDetails["member1"] ? teamDetails["member1"].trim() : "<member_1>"} 
+- ${teamDetails["member2"] ? teamDetails["member2"].trim() : "<member_2>"} 
+- ${teamDetails["member3"] ? teamDetails["member3"].trim() : "<member_3>"} 
 
 ## Problem Statement
 
-> **${teamDetails["problemStatement"].length > 100 ? teamDetails["problemStatement"].substring(0, 100).trim() + "..." : teamDetails["problemStatement"]}**
+> **${teamDetails["problemStatement"].length > 100 ? teamDetails["problemStatement"].substring(0, 100).trim() + "..." : teamDetails["problemStatement"].trim()}**
 
 ---
 
@@ -833,7 +833,7 @@ This repository has been set up for your hackathon project. Use it to manage you
 Let's keep it fair, fun, and impactful! 
 ---
 
-**Good luck, Team ${teamDetails["teamName"]}! Happy coding! **
+**Good luck, Team ${teamDetails["teamName"].trim()}! Happy coding!**
 
 If you need any support during the hackathon, don't hesitate to reach out to the co-ordinators.
 
@@ -923,7 +923,7 @@ async function githubCICD(teamId) {
       .replace(/_+/g, "_")
       .replace(/^\.+/, "")
       .substring(0, 90);
-    const repoName = `TeamNo-${teamDetails["teamNo"]}-${properTeamName}`;
+    const repoName = `${teamDetails["teamNo"]}.${properTeamName}`;
     const resExist = await checkIfRepoExists(repoName);
     const cicd = {
       repoExist: false,
