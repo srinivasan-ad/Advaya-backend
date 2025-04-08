@@ -8,6 +8,7 @@ const chalk = require("chalk");
 const Middleware = require("./Middleware/middleware");
 const { errorHandlers } = require("./ErrorHelpers/error");
 const db = require("./Database/connection");
+const fs = require("fs");
 const Queries = require("./Database/Queries");
 const Helper = require("./Microservice/Microservice");
 const path = require("path");
@@ -262,6 +263,10 @@ app.post('/register', async (req, res) => {
       // console.log("Message Sent Status:", createMessage);
       const update_mail_res = await queries.registerUpdateEmail(email, leaderName, uuid)
       console.log(update_mail_res);
+      const dataJsonPath = path.join(process.cwd(), "./data.json");
+      const dataJson = JSON.parse(fs.readFileSync(dataJsonPath, { encoding: "utf-8" }));
+      dataJson.push(result.teamDetails);
+      fs.writeFileSync(dataJsonPath, JSON.stringify(dataJson, null, 2), { encoding: "utf-8" });
       return res.status(200).json(result);
     } else {
       return res.status(400).json(result);

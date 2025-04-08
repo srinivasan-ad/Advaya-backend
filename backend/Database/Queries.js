@@ -161,7 +161,7 @@ class Queries {
         `INSERT INTO teams (uuid, leader, college, email, phone, backup_email, backup_phone, 
                             team_name, theme_id, member1, member2, member3, utr_id, theme_name, problem_statement, url)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15 , $16)
-         RETURNING uuid;`,
+         RETURNING *;`,
         [
           uuid, leader, college, email, phone, backup_email, backup_phone,
           team_name, theme_id, member1, member2, member3, utrId, theme_name, problemStatement, url
@@ -170,7 +170,7 @@ class Queries {
   
       await client.query("COMMIT");
   
-      return { success: true, message: "Team registered successfully", teamId: teamRes.rows[0].uuid , utr_exists: false};
+      return { success: true, message: "Team registered successfully", teamId: teamRes.rows[0].uuid, teamDetails: teamRes.rows[0], utr_exists: false};
   
     } catch (e) {
       await client.query("ROLLBACK");
