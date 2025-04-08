@@ -283,21 +283,23 @@ app.post('/bulkupdatemail', async (req, res) => {
 });
 
 //sending noraml mail seperately api
-app.post('/mail', async (req, res) => {
+app.post('/mail/:uuid', async (req, res) => {
   console.log('Received Status Callback:', req.body);
+  const {uuid} = req.params
   const file = await twilloWhatsapp.generateQRFile(`https://advaya.bgscet.ac.in/ticket/ef2c2b`, 'ef2c2b');
   if (!file) {
     return res.status(400).json(result);
   }
+  const info  = await queries.getTicket(uuid)
   const mail_res = await Helper.sendRegistrationEmail(
-    "manojadkc2004@gmail.com",
-    "Manoja",
-    "Light Mode",
-    "AI automation",
-    "Solving Workload on employees",
-    "Manoja",
-    "Vilas",
-    "Aditya",
+    info.ticket.email,
+    info.ticket.leaderName,
+    info.ticket.teamName,
+    info.ticket.themeName,
+    info.ticket.problemStatement,
+    info.ticket.member1,
+    info.ticket.member2,
+    info.ticket.member3,
     file.filePath,
     file.filename
   );
