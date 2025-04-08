@@ -74,8 +74,8 @@ class Helper {
         h1, h2, p {margin: 10px 0; padding: 0; text-align: center;}
         h1 {font-size: 32px; text-transform: uppercase;}
         h2 {font-family: 'League Gothic', sans-serif; font-weight: bold; color: #bc3a41; font-size: 28px; text-transform: uppercase; letter-spacing: 1px;}
-        .theme_moment {font-size: 26px;}
-        .problem_moment {font-size: 24px;}
+        .theme_moment {font-size: 22px;}
+        .problem_moment {font-size: 15px;}
         .container {max-width: 700px; margin: 20px auto; padding: 20px; background-color: #fac2b2; border-radius: 10px; box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);}
         .header {text-align: center; padding: 20px 0; background-color: #f13f3e; color: white; font-size: 24px; font-weight: bold; border-radius: 10px 10px 0 0;}
         .content {padding: 25px; text-align: center; background-color: #ffe1db; border-radius: 10px;}
